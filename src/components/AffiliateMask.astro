@@ -1,0 +1,368 @@
+---
+/**
+ * 底部悬浮联盟转化条（高转化版）
+ * - 活动滚动跑马灯
+ * - 社会认同（用户数）
+ * - 紧迫感倒计时
+ * - CN 用户 APK 下载
+ * - 可关闭，24h 后自动重新显示
+ */
+import { UI_TEXT, PROMO_CONFIG, type SupportedLang } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+  binanceUrl: string;
+  showApk: boolean;
+  apkUrl: string;
+  inviteCode: string;
+  ctaText: string;
+  ctaSubtext: string;
+  isCN: boolean;
+}
+
+const { lang, binanceUrl, showApk, apkUrl, inviteCode, ctaText, ctaSubtext, isCN } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+const promo = PROMO_CONFIG[lang] || PROMO_CONFIG.en;
+---
+
+<div id="affiliate-mask" class="af-mask" role="complementary" aria-label="Binance promotion">
+  <!-- 活动跑马灯 -->
+  <div class="af-ticker">
+    <div class="af-ticker-track">
+      <span class="af-ticker-item">{promo.barHighlight}</span>
+      <span class="af-ticker-sep">|</span>
+      <span class="af-ticker-item">{promo.userCount} {lang === 'zh' ? '用户信赖' : lang === 'es' ? 'usuarios confían' : 'users trust Binance'}</span>
+      <span class="af-ticker-sep">|</span>
+      <span class="af-ticker-item">{promo.barHighlight}</span>
+      <span class="af-ticker-sep">|</span>
+      <span class="af-ticker-item">{promo.userCount} {lang === 'zh' ? '用户信赖' : lang === 'es' ? 'usuarios confían' : 'users trust Binance'}</span>
+    </div>
+  </div>
+
+  <!-- 主体 -->
+  <div class="af-inner">
+    <div class="af-content">
+      <!-- 左侧：倒计时 + 文案 -->
+      <div class="af-left">
+        <div class="af-countdown" id="af-countdown">
+          <span class="af-cd-label">{lang === 'zh' ? '活动剩余' : lang === 'es' ? 'Termina en' : 'Ends in'}</span>
+          <div class="af-cd-timer">
+            <span class="af-cd-num" id="af-cd-h">23</span><span class="af-cd-colon">:</span>
+            <span class="af-cd-num" id="af-cd-m">59</span><span class="af-cd-colon">:</span>
+            <span class="af-cd-num" id="af-cd-s">59</span>
+          </div>
+        </div>
+        <div class="af-text">
+          <strong class="af-cta-text">{ctaText}</strong>
+          <span class="af-subtext">{ctaSubtext}</span>
+        </div>
+      </div>
+
+      <!-- 右侧：按钮 -->
+      <div class="af-actions">
+        <a
+          href={binanceUrl}
+          target="_blank"
+          rel="noopener sponsored"
+          class="af-btn af-btn-primary"
+        >
+          <span class="af-btn-shine"></span>
+          {ctaText} →
+        </a>
+        {showApk && (
+          <a
+            href={apkUrl}
+            target="_blank"
+            rel="noopener sponsored"
+            class="af-btn af-btn-secondary"
+          >
+            {t.apkDownload}
+          </a>
+        )}
+      </div>
+    </div>
+    <button
+      id="affiliate-close"
+      class="af-close"
+      aria-label={t.closeBtn}
+      type="button"
+    >
+      ✕
+    </button>
+  </div>
+</div>
+
+<style>
+  .af-mask {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1a2e 50%, #16213e 100%);
+    color: #fff;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .af-mask[data-hidden='true'] {
+    transform: translateY(100%);
+    pointer-events: none;
+  }
+
+  /* ===== 跑马灯 ===== */
+  .af-ticker {
+    background: linear-gradient(90deg, #f0b90b 0%, #f7d060 50%, #f0b90b 100%);
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 3px 0;
+  }
+
+  .af-ticker-track {
+    display: inline-flex;
+    gap: 16px;
+    animation: af-scroll 20s linear infinite;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .af-ticker-sep {
+    opacity: 0.4;
+  }
+
+  @keyframes af-scroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ===== 主体 ===== */
+  .af-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .af-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .af-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* ===== 倒计时 ===== */
+  .af-countdown {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .af-cd-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  .af-cd-timer {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .af-cd-num {
+    background: rgba(240, 185, 11, 0.15);
+    border: 1px solid rgba(240, 185, 11, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: #f0b90b;
+    min-width: 28px;
+    text-align: center;
+  }
+
+  .af-cd-colon {
+    color: #f0b90b;
+    font-weight: 700;
+    font-size: 0.85rem;
+    opacity: 0.6;
+  }
+
+  /* ===== 文案 ===== */
+  .af-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .af-cta-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f0b90b;
+  }
+
+  .af-subtext {
+    font-size: 0.78rem;
+    opacity: 0.8;
+  }
+
+  /* ===== 按钮 ===== */
+  .af-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .af-btn {
+    display: inline-block;
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .af-btn-primary {
+    background: linear-gradient(135deg, #f0b90b 0%, #f7d060 100%);
+    color: #1a1a2e !important;
+    box-shadow: 0 2px 12px rgba(240, 185, 11, 0.35);
+  }
+  .af-btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(240, 185, 11, 0.5);
+  }
+
+  /* 按钮光泽扫过动画 */
+  .af-btn-shine {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent);
+    animation: af-shine 3s ease-in-out infinite;
+  }
+  @keyframes af-shine {
+    0%, 100% { left: -100%; }
+    50% { left: 120%; }
+  }
+
+  .af-btn-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+  }
+  .af-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* ===== 关闭 ===== */
+  .af-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .af-close:hover {
+    color: #fff;
+  }
+
+  /* ===== 移动端 ===== */
+  @media (max-width: 640px) {
+    .af-left {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .af-countdown {
+      flex-direction: row;
+      gap: 8px;
+    }
+    .af-content {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .af-actions {
+      width: 100%;
+    }
+    .af-btn {
+      flex: 1;
+      text-align: center;
+      padding: 12px 12px;
+    }
+  }
+</style>
+
+<script>
+  // 关闭逻辑：24h 后自动重新显示
+  const STORAGE_KEY = 'af_mask_closed';
+  const mask = document.getElementById('affiliate-mask');
+  const closeBtn = document.getElementById('affiliate-close');
+
+  if (mask) {
+    const closedAt = localStorage.getItem(STORAGE_KEY);
+    if (closedAt) {
+      const elapsed = Date.now() - parseInt(closedAt, 10);
+      if (elapsed < 24 * 60 * 60 * 1000) {
+        mask.setAttribute('data-hidden', 'true');
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    closeBtn?.addEventListener('click', () => {
+      mask.setAttribute('data-hidden', 'true');
+      localStorage.setItem(STORAGE_KEY, String(Date.now()));
+    });
+  }
+
+  // 倒计时：每天重置到次日 0 点
+  function updateCountdown() {
+    const now = new Date();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    const diff = tomorrow.getTime() - now.getTime();
+
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+
+    const hEl = document.getElementById('af-cd-h');
+    const mEl = document.getElementById('af-cd-m');
+    const sEl = document.getElementById('af-cd-s');
+
+    if (hEl) hEl.textContent = String(h).padStart(2, '0');
+    if (mEl) mEl.textContent = String(m).padStart(2, '0');
+    if (sEl) sEl.textContent = String(s).padStart(2, '0');
+  }
+
+  updateCountdown();
+  setInterval(updateCountdown, 1000);
+</script>

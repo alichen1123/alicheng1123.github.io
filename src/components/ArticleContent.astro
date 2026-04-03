@@ -1,0 +1,726 @@
+---
+/**
+ * 文章正文组件
+ * GEO 优化：摘要区块、Key Takeaways、大纲、正文、FAQ、结论
+ * E-E-A-T：作者、日期、阅读时长
+ */
+import type { ProcessedPost } from '../lib/content';
+import { autoLinkGlossaryTerms } from '../lib/content';
+import type { AffiliateData } from '../lib/affiliate';
+import { rewriteAffiliateLinks } from '../lib/affiliate';
+import { UI_TEXT, PROMO_CONFIG, PROMOS, type SupportedLang } from '../lib/env';
+import { formatDate } from '../lib/seo';
+import RiskDisclaimer from './RiskDisclaimer.astro';
+
+interface Props {
+  processed: ProcessedPost;
+  lang: SupportedLang;
+  affiliate: AffiliateData;
+}
+
+const { processed, lang, affiliate } = Astro.props;
+const { post, blocks, readingTime } = processed;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+
+// 联盟链接改写 + 自动内链
+let finalHtml = rewriteAffiliateLinks(blocks.bodyHtml, affiliate);
+// finalHtml = autoLinkGlossaryTerms(finalHtml, lang, post.slug);
+const promo = PROMO_CONFIG[lang] || PROMO_CONFIG.en;
+const activePromos = PROMOS.filter((p) => p.active);
+
+const authorName = post.authors?.[0]?.name;
+const authorImage = post.authors?.[0]?.profile_image;
+const publicTags = post.tags?.filter((tag) => tag.visibility === 'public') || [];
+---
+
+<article itemscope itemtype="https://schema.org/Article">
+  <!-- H1 标题 -->
+  <h1 itemprop="headline" style="font-size: 2rem; line-height: 1.3; margin-bottom: 1rem;">
+    {post.title}
+  </h1>
+
+  <!-- 文章元信息：作者、日期、阅读时长 -->
+  <div class="article-meta">
+    {authorName && (
+      <span class="meta-author" itemprop="author" itemscope itemtype="https://schema.org/Person">
+        {authorImage && (
+          <img
+            src={authorImage}
+            alt={authorName}
+            width="28"
+            height="28"
+            style="border-radius: 50%; vertical-align: middle; margin-right: 4px;"
+            loading="lazy"
+          />
+        )}
+        <a href={`/${lang}/author/${post.authors?.[0]?.slug}`} itemprop="url" style="color: inherit; text-decoration: none;">
+          <span itemprop="name">{t.by} {authorName}</span>
+        </a>
+      </span>
+    )}
+    {post.published_at && (
+      <time itemprop="datePublished" datetime={post.published_at}>
+        {t.publishedAt} {formatDate(post.published_at, lang)}
+      </time>
+    )}
+    {post.updated_at && post.updated_at !== post.published_at && (
+      <time itemprop="dateModified" datetime={post.updated_at}>
+        {t.updatedAt} {formatDate(post.updated_at, lang)}
+      </time>
+    )}
+    <span>{readingTime} {t.readingTime}</span>
+  </div>
+
+  <!-- 标签（可点击跳转标签页） -->
+  {publicTags.length > 0 && (
+    <div class="article-tags">
+      {publicTags.map((tag) => (
+        <a href={`/${lang}/tag/${tag.slug}`} class="tag-chip">{tag.name}</a>
+      ))}
+    </div>
+  )}
+
+  <!-- 翻译提示 -->
+  {post.isTranslated && (
+    <div class="translated-notice">
+      {lang === 'zh' ? '⚡ 本文由 AI 自动翻译，仅供参考' :
+       lang === 'es' ? '⚡ Este artículo fue traducido automáticamente por IA' :
+       '⚡ This article was automatically translated by AI'}
+    </div>
+  )}
+
+  <!-- 特色图片 -->
+  {post.feature_image && (
+    <img
+      src={post.feature_image}
+      alt={post.title}
+      itemprop="image"
+      style="width: 100%; border-radius: var(--radius); margin: 1.5rem 0;"
+      loading="eager"
+    />
+  )}
+
+  <!-- GEO: 页面顶部摘要（AI 引擎优先引用） -->
+  <div class="summary-block" role="note" itemprop="abstract">
+    <p>{blocks.summary}</p>
+  </div>
+
+  <!-- GEO: Key Takeaways（AI 引擎高权重引用区域） -->
+  {blocks.keyTakeaways.length > 0 && (
+    <aside class="takeaways-block" role="complementary" aria-label={t.keyTakeaways}>
+      <h2>{t.keyTakeaways}</h2>
+      <ul>
+        {blocks.keyTakeaways.map((item) => (
+          <li>{item}</li>
+        ))}
+      </ul>
+    </aside>
+  )}
+
+  <!-- GEO: 本文涵盖（大纲） -->
+  {blocks.outline.length > 1 && (
+    <nav class="outline-block" aria-label={t.whatThisCovers}>
+      <h2>{t.whatThisCovers}</h2>
+      <ol>
+        {blocks.outline.map((heading) => (
+          <li>{heading}</li>
+        ))}
+      </ol>
+    </nav>
+  )}
+
+  <!-- CTA: 文章内联盟 CTA（高转化版） -->
+  <div class="inline-cta-card">
+    <div class="inline-cta-badge">{promo.inlineBadge}</div>
+    <div class="inline-cta-body">
+      <div class="inline-cta-left">
+        <div class="inline-cta-title">
+          {lang === 'zh' ? '币安 Binance' : 'Binance'}
+        </div>
+        <ul class="inline-cta-perks">
+          {promo.benefits.slice(0, 3).map((b) => (
+            <li>{b}</li>
+          ))}
+        </ul>
+        <div class="inline-cta-trust">
+          <span class="inline-cta-users">{promo.userCount}</span>
+          <span>{lang === 'zh' ? '全球用户' : lang === 'es' ? 'usuarios globales' : 'global users'}</span>
+        </div>
+      </div>
+      <div class="inline-cta-right">
+        <a
+          href={affiliate.binanceUrl}
+          target="_blank"
+          rel="noopener sponsored"
+          class="inline-cta-btn"
+        >
+          {affiliate.ctaText} →
+        </a>
+        <span class="inline-cta-code">{lang === 'zh' ? '邀请码' : 'Code'}: {affiliate.inviteCode}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- GEO: 关键统计数据（AI 引擎可引用的具体数据） -->
+  {processed.blocks.statistics.length > 0 && (
+    <aside class="stats-block" role="note" aria-label={lang === 'zh' ? '关键数据' : 'Key Statistics'}>
+      <h2>{lang === 'zh' ? '关键数据' : lang === 'es' ? 'Datos clave' : 'Key Data'}</h2>
+      <ul>
+        {processed.blocks.statistics.slice(0, 5).map((stat) => (
+          <li>{stat}</li>
+        ))}
+      </ul>
+    </aside>
+  )}
+
+  <!-- 文章正文 -->
+  <section class="article-body" itemprop="articleBody" role="main" set:html={finalHtml} />
+
+  <!-- GEO: FAQ 手风琴区块 -->
+  {blocks.faqs.length > 0 && (
+    <section class="faq-block" role="region" aria-label={t.faq}
+      itemscope itemtype="https://schema.org/FAQPage">
+      <h2>{t.faq}</h2>
+      <div class="faq-list">
+        {blocks.faqs.map((faq, i) => (
+          <details class="faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary class="faq-question" itemprop="name">
+              <span class="faq-q-icon">Q{i + 1}</span>
+              <span>{faq.question}</span>
+              <svg class="faq-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <path d="M3 5L6 8L9 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </summary>
+            <div class="faq-answer" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">
+              <p itemprop="text">{faq.answer}</p>
+            </div>
+          </details>
+        ))}
+      </div>
+    </section>
+  )}
+
+  <!-- 底部 CTA: 活动卡片 -->
+  <div class="bottom-cta-v2">
+    <div class="bottom-cta-header">
+      <span class="bottom-cta-logo">Binance</span>
+      <span class="bottom-cta-tagline">{lang === 'zh' ? '全球最大加密货币交易所' : lang === 'es' ? 'El mayor exchange de criptomonedas' : "World's Largest Crypto Exchange"}</span>
+    </div>
+
+    <!-- 活动列表 -->
+    <div class="promo-list">
+      {activePromos.map((p) => (
+        <div class="promo-item">
+          <span class="promo-badge">{p.badge[lang]}</span>
+          <div class="promo-info">
+            <strong>{p.title[lang]}</strong>
+            <span>{p.desc[lang]}</span>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- 利益点横排 -->
+    <div class="bottom-cta-benefits">
+      {promo.benefits.map((b) => (
+        <span class="benefit-tag">{b}</span>
+      ))}
+    </div>
+
+    <!-- 按钮区 -->
+    <div class="bottom-cta-actions">
+      <a
+        href={affiliate.binanceUrl}
+        target="_blank"
+        rel="noopener sponsored"
+        class="bottom-cta-btn-v2"
+      >
+        {affiliate.ctaText} — {affiliate.inviteCode} →
+      </a>
+      {affiliate.showApk && (
+        <a
+          href={affiliate.apkUrl}
+          target="_blank"
+          rel="noopener sponsored"
+          class="bottom-cta-apk-v2"
+        >
+          {(UI_TEXT[lang] || UI_TEXT.en).apkDownload}
+        </a>
+      )}
+    </div>
+
+    <p class="bottom-cta-disclaimer">
+      {lang === 'zh' ? '* 活动以币安官网实际展示为准，注册时自动应用邀请码' : lang === 'es' ? '* Sujeto a las condiciones de Binance. Código aplicado automáticamente' : '* Subject to Binance official terms. Referral code auto-applied'}
+    </p>
+  </div>
+
+  <!-- YMYL: 投资风险提示（每篇金融内容底部必须有） -->
+  <RiskDisclaimer lang={lang} />
+</article>
+
+<style>
+  .article-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 1rem;
+  }
+
+  .tag-chip {
+    display: inline-block;
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    color: var(--color-text-light) !important;
+    text-decoration: none !important;
+    transition: all 0.15s;
+  }
+  .tag-chip:hover {
+    border-color: var(--color-primary);
+    background: var(--color-bg-light);
+    border-color: var(--color-primary);
+    text-decoration: none !important;
+  }
+
+  .translated-notice {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+  }
+
+  /* GEO: 摘要区块 */
+  .summary-block {
+    background: var(--color-bg-light);
+    border-left: 4px solid var(--color-primary);
+    padding: 1rem 1.25rem;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    margin-bottom: 1.5rem;
+    font-size: 1.05rem;
+    line-height: 1.6;
+  }
+
+  /* GEO: Key Takeaways */
+  .takeaways-block {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-success);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .takeaways-block h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    color: var(--color-success);
+    border: none;
+  }
+  .takeaways-block ul {
+    padding-left: 1.25rem;
+  }
+  .takeaways-block li {
+    margin-bottom: 0.4rem;
+    color: var(--color-text);
+  }
+
+  /* GEO: 大纲 */
+  .outline-block {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .outline-block h2 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    border: none;
+    color: var(--color-text);
+  }
+  .outline-block ol {
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+  }
+
+  /* ===== 内联 CTA 高转化卡片 ===== */
+  .inline-cta-card {
+    border: 2px solid var(--color-primary);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin: 2rem 0;
+    background: var(--color-bg);
+  }
+
+  .inline-cta-badge {
+    background: linear-gradient(90deg, #f0b90b, #f7d060);
+    color: #1a1a2e;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 14px;
+    text-align: center;
+  }
+
+  .inline-cta-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px 20px;
+  }
+
+  .inline-cta-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .inline-cta-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    margin-bottom: 8px;
+    color: var(--color-text);
+  }
+
+  .inline-cta-perks {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 8px 0;
+    font-size: 0.82rem;
+  }
+  .inline-cta-perks li {
+    padding: 2px 0;
+    color: var(--color-text-light);
+    margin: 0;
+  }
+  .inline-cta-perks li::before {
+    content: '✓ ';
+    color: var(--color-success);
+    font-weight: 700;
+  }
+
+  .inline-cta-trust {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+  }
+  .inline-cta-users {
+    font-weight: 800;
+    color: var(--color-primary-dark);
+    font-size: 0.85rem;
+  }
+
+  .inline-cta-right {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .inline-cta-btn {
+    display: inline-block;
+    background: linear-gradient(135deg, #f0b90b 0%, #f7d060 100%);
+    color: #1a1a2e !important;
+    padding: 12px 28px;
+    border-radius: var(--radius);
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-decoration: none !important;
+    box-shadow: 0 2px 10px rgba(240, 185, 11, 0.3);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .inline-cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(240, 185, 11, 0.45);
+    text-decoration: none !important;
+  }
+
+  .inline-cta-code {
+    font-size: 0.72rem;
+    color: var(--color-text-light);
+    background: var(--color-bg-light);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  @media (max-width: 640px) {
+    .inline-cta-body {
+      flex-direction: column;
+      text-align: center;
+    }
+    .inline-cta-perks {
+      text-align: left;
+    }
+  }
+
+  /* GEO: 关键统计数据 */
+  .stats-block {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .stats-block h2 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    color: #1e40af;
+    border: none;
+  }
+  .stats-block ul {
+    padding-left: 1.25rem;
+    font-size: 0.9rem;
+  }
+  .stats-block li {
+    margin-bottom: 0.3rem;
+    color: #1e3a5f;
+  }
+
+  /* FAQ 手风琴 */
+  .faq-block {
+    background: var(--color-bg-light);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+    margin: 2rem 0;
+  }
+  .faq-block h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    border: none;
+  }
+
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .faq-item {
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    overflow: hidden;
+    transition: box-shadow 0.15s;
+  }
+  .faq-item[open] {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .faq-question {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    list-style: none;
+    user-select: none;
+  }
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+  .faq-question::marker {
+    display: none;
+    content: '';
+  }
+
+  .faq-q-icon {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: var(--color-primary);
+    color: var(--color-text);
+    font-size: 0.72rem;
+    font-weight: 800;
+    border-radius: 50%;
+  }
+
+  .faq-arrow {
+    flex-shrink: 0;
+    margin-left: auto;
+    transition: transform 0.2s;
+    color: var(--color-text-light);
+  }
+  .faq-item[open] .faq-arrow {
+    transform: rotate(180deg);
+  }
+
+  .faq-answer {
+    padding: 0 16px 14px 54px;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    color: var(--color-text-light);
+  }
+  .faq-answer p {
+    margin: 0;
+  }
+
+  /* ===== 底部 CTA 活动卡片 ===== */
+  .bottom-cta-v2 {
+    background: linear-gradient(135deg, #0c0e1a 0%, #1a1a2e 60%, #16213e 100%);
+    color: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    margin: 2.5rem 0;
+    border: 1px solid rgba(240, 185, 11, 0.2);
+  }
+
+  .bottom-cta-header {
+    background: linear-gradient(90deg, rgba(240,185,11,0.15), transparent);
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .bottom-cta-logo {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #f0b90b;
+    letter-spacing: -0.02em;
+  }
+
+  .bottom-cta-tagline {
+    font-size: 0.78rem;
+    opacity: 0.65;
+  }
+
+  /* 活动列表 */
+  .promo-list {
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .promo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .promo-badge {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #f0b90b, #f7d060);
+    color: #1a1a2e;
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  .promo-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .promo-info strong {
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .promo-info span {
+    font-size: 0.75rem;
+    opacity: 0.65;
+  }
+
+  /* 利益点标签 */
+  .bottom-cta-benefits {
+    padding: 0 20px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .benefit-tag {
+    background: rgba(240, 185, 11, 0.1);
+    border: 1px solid rgba(240, 185, 11, 0.2);
+    color: #f0b90b;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 100px;
+    white-space: nowrap;
+  }
+
+  /* 按钮区 */
+  .bottom-cta-actions {
+    padding: 0 20px 16px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bottom-cta-btn-v2 {
+    flex: 1;
+    display: block;
+    text-align: center;
+    background: linear-gradient(135deg, #f0b90b 0%, #f7d060 100%);
+    color: #1a1a2e !important;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 1rem;
+    text-decoration: none !important;
+    box-shadow: 0 2px 16px rgba(240, 185, 11, 0.3);
+    transition: all 0.2s;
+  }
+  .bottom-cta-btn-v2:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(240, 185, 11, 0.5);
+    text-decoration: none !important;
+  }
+
+  .bottom-cta-apk-v2 {
+    display: block;
+    text-align: center;
+    padding: 14px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    text-decoration: none !important;
+    transition: background 0.15s;
+  }
+  .bottom-cta-apk-v2:hover {
+    background: rgba(255, 255, 255, 0.15);
+    text-decoration: none !important;
+  }
+
+  .bottom-cta-disclaimer {
+    padding: 0 20px 12px;
+    font-size: 0.65rem;
+    opacity: 0.4;
+    text-align: center;
+  }
+</style>

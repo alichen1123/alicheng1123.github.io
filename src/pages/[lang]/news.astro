@@ -1,0 +1,230 @@
+---
+/**
+ * 资讯频道页
+ * /[lang]/news
+ * 聚合所有新闻内容，按分类筛选
+ * 使用 Ghost 内部标签 #news 筛选
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SeoHead from '../../components/SeoHead.astro';
+import Pagination from '../../components/Pagination.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { isValidLang, SITE_URL, UI_TEXT, CACHE_TTL, LIST_PAGE_SIZE, type SupportedLang } from '../../lib/env';
+import { getPostList, getPublicTags, getRecentPosts } from '../../lib/ghost';
+import { buildHubBreadcrumbJsonLd, buildOrganizationJsonLd } from '../../lib/seo';
+
+const { lang } = Astro.params;
+
+if (!lang || !isValidLang(lang)) {
+  return Astro.redirect('/en', 302);
+}
+
+const currentLang = lang as SupportedLang;
+const t = UI_TEXT[currentLang] || UI_TEXT.en;
+
+const pageParam = Astro.url.searchParams.get('page');
+const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+
+// 按分类筛选
+const categoryParam = Astro.url.searchParams.get('cat');
+let tagFilter = 'hash-news';
+if (categoryParam) {
+  tagFilter = `hash-news+tag:${categoryParam}`;
+}
+
+const [{ posts, total, pages: totalPages }, tags, recentPosts] = await Promise.all([
+  getPostList({ lang: currentLang, page: currentPage, limit: LIST_PAGE_SIZE, tag: tagFilter }),
+  getPublicTags(currentLang),
+  getRecentPosts(currentLang, 5),
+]);
+
+if (currentPage > 1 && currentPage > totalPages && totalPages > 0) {
+  return Astro.redirect(`/${currentLang}/news`, 302);
+}
+
+const pageTitle = currentPage > 1
+  ? `${t.news} - ${t.page} ${currentPage} | 币易家`
+  : `${t.news} | 币易家`;
+
+const canonicalUrl = currentPage > 1
+  ? `${SITE_URL}/${currentLang}/news?page=${currentPage}`
+  : `${SITE_URL}/${currentLang}/news`;
+
+const seo = {
+  title: pageTitle,
+  description: t.newsDesc,
+  canonicalUrl,
+  ogTitle: t.news,
+  ogDescription: t.newsDesc,
+  ogImage: null,
+  ogType: 'website',
+  twitterCard: 'summary' as const,
+  publishedTime: null,
+  modifiedTime: null,
+  author: null,
+  lang: currentLang,
+  slug: 'news',
+};
+
+const jsonLdList = [
+  buildOrganizationJsonLd(),
+  buildHubBreadcrumbJsonLd(currentLang, 'news', t.news),
+];
+
+const prevUrl = currentPage > 1
+  ? currentPage === 2 ? `${SITE_URL}/${currentLang}/news` : `${SITE_URL}/${currentLang}/news?page=${currentPage - 1}`
+  : null;
+const nextUrl = currentPage < totalPages
+  ? `${SITE_URL}/${currentLang}/news?page=${currentPage + 1}`
+  : null;
+
+Astro.response.headers.set(
+  'Cache-Control',
+  `public, s-maxage=${CACHE_TTL.homeSMaxAge}, stale-while-revalidate=3600`
+);
+
+// 新闻分类
+const newsCategories: Record<SupportedLang, Array<{ key: string; label: string }>> = {
+  zh: [
+    { key: '', label: '全部' },
+    { key: 'market', label: '市场动态' },
+    { key: 'regulation', label: '监管政策' },
+    { key: 'defi', label: 'DeFi' },
+    { key: 'nft', label: 'NFT' },
+    { key: 'layer2', label: 'Layer2' },
+    { key: 'meme', label: 'Meme 币' },
+  ],
+  es: [
+    { key: '', label: 'Todo' },
+    { key: 'market', label: 'Mercado' },
+    { key: 'regulation', label: 'Regulación' },
+    { key: 'defi', label: 'DeFi' },
+    { key: 'nft', label: 'NFT' },
+    { key: 'layer2', label: 'Layer2' },
+    { key: 'meme', label: 'Meme' },
+  ],
+  en: [
+    { key: '', label: 'All' },
+    { key: 'market', label: 'Market' },
+    { key: 'regulation', label: 'Regulation' },
+    { key: 'defi', label: 'DeFi' },
+    { key: 'nft', label: 'NFT' },
+    { key: 'layer2', label: 'Layer2' },
+    { key: 'meme', label: 'Meme' },
+  ],
+};
+
+const cats = newsCategories[currentLang] || newsCategories.en;
+
+// 格式化时间
+function formatNewsDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString(
+    currentLang === 'zh' ? 'zh-CN' : currentLang === 'es' ? 'es-ES' : 'en-US',
+    { month: 'short', day: 'numeric', year: 'numeric' }
+  );
+}
+---
+
+<BaseLayout lang={currentLang} title={seo.title} hasSidebar={true}>
+  <Fragment slot="head">
+    <SeoHead seo={seo} jsonLdList={jsonLdList} />
+    {prevUrl && <link rel="prev" href={prevUrl} />}
+    {nextUrl && <link rel="next" href={nextUrl} />}
+  </Fragment>
+
+  <nav class="hub-breadcrumb">
+    <a href={`/${currentLang}`}>{t.home}</a>
+    <span> / </span>
+    <span>{t.news}</span>
+  </nav>
+
+  <div class="hub-header">
+    <h1>{t.news}</h1>
+    <p class="hub-desc">{t.newsDesc}</p>
+  </div>
+
+  <!-- 分类筛选 -->
+  <div class="category-filter">
+    {cats.map((cat) => (
+      <a
+        href={cat.key ? `/${currentLang}/news?cat=${cat.key}` : `/${currentLang}/news`}
+        class:list={['filter-btn', { active: (categoryParam || '') === cat.key }]}
+      >
+        {cat.label}
+      </a>
+    ))}
+  </div>
+
+  {total > 0 && (
+    <p class="hub-count">
+      {currentLang === 'zh' ? `共 ${total} 篇资讯` : `${total} ${t.totalArticles}`}
+    </p>
+  )}
+
+  {posts.length === 0 && (
+    <p style="color: var(--color-text-light); padding: 2rem 0;">
+      {currentLang === 'zh' ? '暂无资讯' : currentLang === 'es' ? 'No hay noticias' : 'No news yet'}
+    </p>
+  )}
+
+  <div class="news-list">
+    {posts.map((post) => (
+      <a href={`/${currentLang}/${post.slug}`} class="news-card">
+        {post.feature_image && (
+          <img src={post.feature_image} alt={post.title} loading="lazy" class="news-img" />
+        )}
+        <div class="news-info">
+          <h2>{post.title}</h2>
+          {post.custom_excerpt && <p>{post.custom_excerpt}</p>}
+          <div class="news-meta">
+            <time>{formatNewsDate(post.published_at)}</time>
+            <span>{post.reading_time || 1} {t.readingTime}</span>
+          </div>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <Pagination
+    currentPage={currentPage}
+    totalPages={totalPages}
+    baseUrl={`/${currentLang}/news`}
+  />
+
+  <Sidebar
+    slot="sidebar"
+    lang={currentLang}
+    tags={tags}
+    recentPosts={recentPosts}
+    binanceUrl={Astro.locals.affiliate.binanceUrl}
+  />
+</BaseLayout>
+
+<style>
+  .hub-breadcrumb { font-size: 0.82rem; color: var(--color-text-light); margin-bottom: 1rem; }
+  .hub-breadcrumb a { color: var(--color-link); text-decoration: none; }
+  .hub-header { margin-bottom: 1.5rem; }
+  .hub-header h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  .hub-desc { font-size: 0.9rem; color: var(--color-text-light); }
+
+  .category-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .filter-btn { padding: 6px 16px; font-size: 0.82rem; font-weight: 500; border: 1px solid var(--color-border); border-radius: 100px; color: var(--color-text) !important; text-decoration: none !important; background: var(--color-bg); transition: all 0.15s; }
+  .filter-btn:hover { border-color: var(--color-primary); background: var(--color-bg-light); text-decoration: none !important; }
+  .filter-btn.active { background: var(--color-primary); border-color: var(--color-primary); font-weight: 700; }
+
+  .hub-count { font-size: 0.85rem; color: var(--color-text-light); margin-bottom: 1rem; }
+
+  .news-list { display: flex; flex-direction: column; gap: 16px; }
+  .news-card { display: flex; gap: 16px; border: 1px solid var(--color-border); border-radius: var(--radius); overflow: hidden; text-decoration: none; color: var(--color-text); transition: box-shadow 0.2s; }
+  .news-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); text-decoration: none; }
+  .news-img { width: 200px; min-height: 130px; object-fit: cover; flex-shrink: 0; }
+  .news-info { padding: 12px 16px 12px 0; display: flex; flex-direction: column; justify-content: center; }
+  .news-info h2 { font-size: 1.1rem; line-height: 1.4; margin-bottom: 6px; }
+  .news-info p { font-size: 0.85rem; color: var(--color-text-light); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 4px; }
+  .news-meta { display: flex; gap: 12px; font-size: 0.75rem; color: var(--color-text-light); }
+  @media (max-width: 640px) {
+    .news-card { flex-direction: column; }
+    .news-img { width: 100%; height: 180px; }
+    .news-info { padding: 12px 16px; }
+  }
+</style>

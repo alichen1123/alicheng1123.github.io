@@ -1,0 +1,157 @@
+---
+/**
+ * 分页组件
+ * 支持大量页面时的省略号显示
+ */
+interface Props {
+  currentPage: number;
+  totalPages: number;
+  baseUrl: string; // e.g. "/zh"
+}
+
+const { currentPage, totalPages, baseUrl } = Astro.props;
+
+// 生成页码链接
+function pageUrl(page: number): string {
+  if (page === 1) return baseUrl;
+  return `${baseUrl}?page=${page}`;
+}
+
+// 生成要显示的页码列表（带省略号）
+function getPageNumbers(): (number | '...')[] {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+  }
+
+  const pages: (number | '...')[] = [1];
+
+  if (currentPage > 3) {
+    pages.push('...');
+  }
+
+  const start = Math.max(2, currentPage - 1);
+  const end = Math.min(totalPages - 1, currentPage + 1);
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i);
+  }
+
+  if (currentPage < totalPages - 2) {
+    pages.push('...');
+  }
+
+  if (totalPages > 1) {
+    pages.push(totalPages);
+  }
+
+  return pages;
+}
+
+const pageNumbers = getPageNumbers();
+const hasPrev = currentPage > 1;
+const hasNext = currentPage < totalPages;
+---
+
+{totalPages > 1 && (
+  <nav class="pagination" aria-label="Pagination">
+    {hasPrev ? (
+      <a href={pageUrl(currentPage - 1)} class="page-btn prev" rel="prev">&larr;</a>
+    ) : (
+      <span class="page-btn prev disabled">&larr;</span>
+    )}
+
+    <div class="page-numbers">
+      {pageNumbers.map((p) =>
+        p === '...' ? (
+          <span class="page-ellipsis">&hellip;</span>
+        ) : p === currentPage ? (
+          <span class="page-num active" aria-current="page">{p}</span>
+        ) : (
+          <a href={pageUrl(p)} class="page-num">{p}</a>
+        )
+      )}
+    </div>
+
+    {hasNext ? (
+      <a href={pageUrl(currentPage + 1)} class="page-btn next" rel="next">&rarr;</a>
+    ) : (
+      <span class="page-btn next disabled">&rarr;</span>
+    )}
+  </nav>
+)}
+
+<style>
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 2.5rem;
+    padding: 1rem 0;
+  }
+
+  .page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .page-btn,
+  .page-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 6px;
+    border: 1px solid var(--color-border);
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    background: var(--color-bg);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .page-btn:hover:not(.disabled),
+  .page-num:hover:not(.active) {
+    background: var(--color-bg-light);
+    border-color: var(--color-primary);
+    text-decoration: none !important;
+  }
+
+  .page-num.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: var(--color-text) !important;
+    font-weight: 700;
+    cursor: default;
+  }
+
+  .page-btn.disabled {
+    opacity: 0.35;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    font-size: 0.875rem;
+    color: var(--color-text-light);
+  }
+
+  @media (max-width: 480px) {
+    .page-btn,
+    .page-num {
+      min-width: 32px;
+      height: 32px;
+      font-size: 0.8rem;
+    }
+  }
+</style>

@@ -1,0 +1,87 @@
+---
+/**
+ * 投资风险提示组件（YMYL 合规必需）
+ * 每篇金融内容底部自动注入
+ */
+import type { SupportedLang } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+}
+
+const { lang } = Astro.props;
+
+const disclaimerText: Record<SupportedLang, { title: string; body: string; nfa: string }> = {
+  zh: {
+    title: '风险提示',
+    body: '加密货币投资具有高度风险。价格波动剧烈，您可能损失全部投资本金。本文内容仅供教育和信息参考，不构成任何投资建议、财务建议或交易建议。在做出任何投资决策之前，请自行进行充分研究（DYOR），并在必要时咨询持牌金融顾问。',
+    nfa: '本站不是注册的投资顾问或经纪商。文章中包含的联盟链接可能会为本站带来佣金收入，但不会影响我们的编辑独立性和内容客观性。',
+  },
+  es: {
+    title: 'Advertencia de Riesgo',
+    body: 'Las inversiones en criptomonedas conllevan un alto riesgo. Los precios son extremadamente volátiles y puede perder toda su inversión. Este contenido es solo para fines educativos e informativos, y no constituye asesoramiento de inversión, financiero o comercial. Antes de tomar cualquier decisión de inversión, realice su propia investigación (DYOR) y consulte a un asesor financiero autorizado si es necesario.',
+    nfa: 'Este sitio no es un asesor de inversiones ni un corredor registrado. Los enlaces de afiliados en los artículos pueden generar comisiones para este sitio, pero no afectan nuestra independencia editorial ni la objetividad del contenido.',
+  },
+  en: {
+    title: 'Risk Disclaimer',
+    body: 'Cryptocurrency investments carry a high degree of risk. Prices are extremely volatile and you may lose your entire investment. This content is for educational and informational purposes only and does not constitute investment, financial, or trading advice. Before making any investment decisions, please do your own research (DYOR) and consult a licensed financial advisor if necessary.',
+    nfa: 'This site is not a registered investment advisor or broker. Affiliate links in articles may earn commissions for this site, but do not affect our editorial independence or content objectivity.',
+  },
+};
+
+const d = disclaimerText[lang] || disclaimerText.en;
+---
+
+<aside class="risk-disclaimer" role="alert" aria-label={d.title}>
+  <div class="risk-icon">⚠️</div>
+  <div class="risk-content">
+    <strong class="risk-title">{d.title}</strong>
+    <p>{d.body}</p>
+    <p class="risk-nfa">{d.nfa}</p>
+  </div>
+</aside>
+
+<style>
+  .risk-disclaimer {
+    display: flex;
+    gap: 12px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-left: 4px solid #ef4444;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 16px 20px;
+    margin: 2rem 0;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: #7f1d1d;
+  }
+
+  .risk-icon {
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    margin-top: 2px;
+  }
+
+  .risk-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .risk-title {
+    display: block;
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    color: #991b1b;
+  }
+
+  .risk-content p {
+    margin: 0 0 6px;
+  }
+
+  .risk-nfa {
+    font-size: 0.75rem;
+    opacity: 0.8;
+    margin-bottom: 0 !important;
+  }
+</style>

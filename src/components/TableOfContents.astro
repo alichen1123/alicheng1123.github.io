@@ -1,0 +1,88 @@
+---
+/**
+ * 文章目录组件（Table of Contents）
+ * 从已提取的 outline（H2 标题列表）生成可跳转目录
+ */
+import { UI_TEXT, type SupportedLang } from '../lib/env';
+
+interface Props {
+  outline: string[];
+  lang: SupportedLang;
+}
+
+const { outline, lang } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+
+// 生成与 Ghost 一致的 anchor id
+function ghostSlugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[\s~`!@#$%^&*()+={}[\]|\\:;"'<>,.?/]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .split('-')
+    .map(segment => {
+      // 纯 ASCII 片段直接保留，非 ASCII 片段做 URL 编码
+      return /^[\x00-\x7F]*$/.test(segment) ? segment : encodeURIComponent(segment);
+    })
+    .join('-');
+}
+---
+
+{outline.length > 2 && (
+  <nav class="toc" aria-label={t.tableOfContents}>
+    <h3 class="toc-title">{t.tableOfContents}</h3>
+    <ol class="toc-list">
+      {outline.map((heading) => (
+        <li>
+          <a href={`#${ghostSlugify(heading)}`} class="toc-link">{heading}</a>
+        </li>
+      ))}
+    </ol>
+  </nav>
+)}
+
+<style>
+  .toc {
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+
+  .toc-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--color-primary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .toc-list {
+    padding-left: 1.2rem;
+    margin: 0;
+  }
+
+  .toc-list li {
+    margin-bottom: 4px;
+  }
+
+  .toc-link {
+    font-size: 0.82rem;
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    line-height: 1.4;
+    display: block;
+    padding: 2px 0;
+    transition: color 0.12s;
+  }
+
+  .toc-link:hover {
+    color: var(--color-primary-dark) !important;
+    text-decoration: none !important;
+  }
+</style>

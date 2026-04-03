@@ -1,0 +1,222 @@
+---
+/**
+ * 词汇表索引页
+ * /[lang]/glossary
+ * A-Z 索引 + 术语列表
+ * 使用 Ghost 内部标签 #glossary 筛选
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SeoHead from '../../components/SeoHead.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { isValidLang, SITE_URL, UI_TEXT, CACHE_TTL, type SupportedLang } from '../../lib/env';
+import { getPostList, getPublicTags, getRecentPosts } from '../../lib/ghost';
+import { buildHubBreadcrumbJsonLd, buildOrganizationJsonLd } from '../../lib/seo';
+
+const { lang } = Astro.params;
+
+if (!lang || !isValidLang(lang)) {
+  return Astro.redirect('/en', 302);
+}
+
+const currentLang = lang as SupportedLang;
+const t = UI_TEXT[currentLang] || UI_TEXT.en;
+
+// 获取所有词汇表文章（不分页，全部加载用于 A-Z 索引）
+const [{ posts, total }, tags, recentPosts] = await Promise.all([
+  getPostList({ lang: currentLang, limit: 200, tag: 'hash-glossary' }),
+  getPublicTags(currentLang),
+  getRecentPosts(currentLang, 5),
+]);
+
+// 按首字母分组
+const grouped: Record<string, typeof posts> = {};
+for (const post of posts) {
+  const firstChar = post.title.charAt(0).toUpperCase();
+  // 中文用拼音首字母不可靠，直接按 # 分组
+  const key = /[A-Z]/.test(firstChar) ? firstChar : '#';
+  if (!grouped[key]) grouped[key] = [];
+  grouped[key].push(post);
+}
+
+// 排序字母键
+const sortedKeys = Object.keys(grouped).sort((a, b) => {
+  if (a === '#') return 1;
+  if (b === '#') return -1;
+  return a.localeCompare(b);
+});
+
+const canonicalUrl = `${SITE_URL}/${currentLang}/glossary`;
+
+const seo = {
+  title: `${t.glossary} | 币易家`,
+  description: t.glossaryDesc,
+  canonicalUrl,
+  ogTitle: t.glossary,
+  ogDescription: t.glossaryDesc,
+  ogImage: null,
+  ogType: 'website',
+  twitterCard: 'summary' as const,
+  publishedTime: null,
+  modifiedTime: null,
+  author: null,
+  lang: currentLang,
+  slug: 'glossary',
+};
+
+const jsonLdList = [
+  buildOrganizationJsonLd(),
+  buildHubBreadcrumbJsonLd(currentLang, 'glossary', t.glossary),
+];
+
+Astro.response.headers.set(
+  'Cache-Control',
+  `public, s-maxage=${CACHE_TTL.homeSMaxAge}, stale-while-revalidate=3600`
+);
+---
+
+<BaseLayout lang={currentLang} title={seo.title} hasSidebar={true}>
+  <SeoHead slot="head" seo={seo} jsonLdList={jsonLdList} />
+
+  <nav class="hub-breadcrumb">
+    <a href={`/${currentLang}`}>{t.home}</a>
+    <span> / </span>
+    <span>{t.glossary}</span>
+  </nav>
+
+  <div class="hub-header">
+    <h1>{t.glossary}</h1>
+    <p class="hub-desc">{t.glossaryDesc}</p>
+    {total > 0 && (
+      <p class="hub-count">
+        {currentLang === 'zh' ? `共 ${total} 个术语` : `${total} terms`}
+      </p>
+    )}
+  </div>
+
+  <!-- A-Z 快速导航 -->
+  {sortedKeys.length > 0 && (
+    <nav class="az-nav" aria-label="Alphabetical navigation">
+      {sortedKeys.map((key) => (
+        <a href={`#letter-${key}`} class="az-link">{key}</a>
+      ))}
+    </nav>
+  )}
+
+  <!-- 术语列表 -->
+  {sortedKeys.length === 0 && (
+    <p style="color: var(--color-text-light); padding: 2rem 0;">
+      {currentLang === 'zh' ? '暂无术语' : currentLang === 'es' ? 'No hay términos' : 'No terms yet'}
+    </p>
+  )}
+
+  {sortedKeys.map((key) => (
+    <section class="letter-section" id={`letter-${key}`}>
+      <h2 class="letter-heading">{key}</h2>
+      <div class="term-list">
+        {grouped[key].map((post) => (
+          <a href={`/${currentLang}/${post.slug}`} class="term-card">
+            <h3>{post.title}</h3>
+            {post.custom_excerpt && <p>{post.custom_excerpt}</p>}
+          </a>
+        ))}
+      </div>
+    </section>
+  ))}
+
+  <Sidebar
+    slot="sidebar"
+    lang={currentLang}
+    tags={tags}
+    recentPosts={recentPosts}
+    binanceUrl={Astro.locals.affiliate.binanceUrl}
+  />
+</BaseLayout>
+
+<style>
+  .hub-breadcrumb { font-size: 0.82rem; color: var(--color-text-light); margin-bottom: 1rem; }
+  .hub-breadcrumb a { color: var(--color-link); text-decoration: none; }
+  .hub-header { margin-bottom: 1.5rem; }
+  .hub-header h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  .hub-desc { font-size: 0.9rem; color: var(--color-text-light); }
+  .hub-count { font-size: 0.85rem; color: var(--color-text-light); margin-top: 0.25rem; }
+
+  .az-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 2rem;
+    padding: 12px 16px;
+    background: var(--color-bg-light);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  .az-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .az-link:hover {
+    background: var(--color-primary);
+    text-decoration: none !important;
+  }
+
+  .letter-section {
+    margin-bottom: 2rem;
+  }
+
+  .letter-heading {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-primary-dark);
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--color-primary);
+    margin-bottom: 1rem;
+  }
+
+  .term-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 12px;
+  }
+
+  .term-card {
+    display: block;
+    padding: 14px 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: all 0.15s;
+  }
+  .term-card:hover {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    text-decoration: none;
+  }
+
+  .term-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--color-link);
+  }
+
+  .term-card p {
+    font-size: 0.8rem;
+    color: var(--color-text-light);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+  }
+</style>

@@ -1,0 +1,17 @@
+---
+/**
+ * 首页
+ * 根据访客国家跳转到对应语言版本
+ * CN → /zh, VE → /es, 其他 → /en
+ */
+const countryCode = Astro.locals.affiliate?.countryCode || 'UNKNOWN';
+
+let targetLang = 'en';
+if (countryCode === 'CN') {
+  targetLang = 'zh';
+} else if (countryCode === 'VE') {
+  targetLang = 'es';
+}
+
+return Astro.redirect(`/${targetLang}`, 302);
+---

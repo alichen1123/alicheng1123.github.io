@@ -1,0 +1,184 @@
+---
+/**
+ * 静态页面路由（法律页面、关于页面等）
+ * /[lang]/page/[slug]
+ * 内容从 Ghost Pages 获取
+ *
+ * 预设页面 slug:
+ * - disclaimer: 免责声明
+ * - privacy-policy: 隐私政策
+ * - cookie-policy: Cookie 政策
+ * - editorial-policy: 编辑政策
+ * - about: 关于我们
+ */
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import SeoHead from '../../../components/SeoHead.astro';
+import { isValidLang, SITE_URL, UI_TEXT, CACHE_TTL, type SupportedLang } from '../../../lib/env';
+import { getPageBySlug } from '../../../lib/ghost';
+import { sanitizeHtml } from '../../../lib/content';
+import { buildOrganizationJsonLd } from '../../../lib/seo';
+
+const { lang, slug } = Astro.params;
+
+if (!lang || !isValidLang(lang)) {
+  return Astro.redirect('/en', 302);
+}
+if (!slug) {
+  return Astro.redirect(`/${lang}`, 302);
+}
+
+const currentLang = lang as SupportedLang;
+const t = UI_TEXT[currentLang] || UI_TEXT.en;
+
+// 尝试获取语言特定版本（slug-zh, slug-es），否则获取通用版本
+let page = await getPageBySlug(`${slug}-${currentLang}`);
+if (!page) {
+  page = await getPageBySlug(slug);
+}
+
+// 预设法律页面内容（如果 Ghost 中没有对应页面）
+const fallbackPages: Record<string, Record<SupportedLang, { title: string; html: string }>> = {
+  disclaimer: {
+    zh: {
+      title: '免责声明',
+      html: `<h2>投资风险提示</h2><p>加密货币投资具有高度风险。价格波动剧烈，您可能损失全部投资本金。本网站提供的所有内容（包括但不限于文章、教程、评测、数据）仅供教育和信息参考，不构成任何投资建议、财务建议或交易建议。</p><h2>联盟披露</h2><p>本网站部分链接为联盟营销链接。当您通过这些链接注册或购买服务时，我们可能会获得佣金。这不会增加您的任何费用，但有助于我们维持网站运营和内容创作。联盟关系不会影响我们的编辑独立性。</p><h2>内容准确性</h2><p>我们尽力确保所有内容的准确性和时效性，但不对任何信息的完整性、准确性或可靠性做出保证。加密货币市场变化迅速，请在做出任何决策前自行验证相关信息。</p><h2>第三方链接</h2><p>本网站可能包含指向第三方网站的链接。我们不对这些外部网站的内容、隐私政策或安全性负责。</p>`,
+    },
+    es: {
+      title: 'Aviso Legal',
+      html: `<h2>Advertencia de Riesgo de Inversión</h2><p>Las inversiones en criptomonedas conllevan un alto grado de riesgo. Los precios son extremadamente volátiles y puede perder toda su inversión. Todo el contenido proporcionado en este sitio web es solo para fines educativos e informativos, y no constituye asesoramiento de inversión, financiero o comercial.</p><h2>Divulgación de Afiliados</h2><p>Algunos enlaces en este sitio web son enlaces de marketing de afiliados. Cuando se registra o compra servicios a través de estos enlaces, podemos recibir una comisión. Esto no aumenta sus costos, pero nos ayuda a mantener el sitio web. Las relaciones de afiliados no afectan nuestra independencia editorial.</p><h2>Precisión del Contenido</h2><p>Nos esforzamos por garantizar la precisión de todo el contenido, pero no garantizamos la integridad, precisión o confiabilidad de ninguna información.</p><h2>Enlaces de Terceros</h2><p>Este sitio web puede contener enlaces a sitios web de terceros. No somos responsables del contenido, políticas de privacidad o seguridad de estos sitios externos.</p>`,
+    },
+    en: {
+      title: 'Disclaimer',
+      html: `<h2>Investment Risk Warning</h2><p>Cryptocurrency investments carry a high degree of risk. Prices are extremely volatile and you may lose your entire investment. All content provided on this website is for educational and informational purposes only, and does not constitute investment, financial, or trading advice.</p><h2>Affiliate Disclosure</h2><p>Some links on this website are affiliate marketing links. When you register or purchase services through these links, we may receive a commission. This does not increase your costs but helps us maintain the website. Affiliate relationships do not affect our editorial independence.</p><h2>Content Accuracy</h2><p>We strive to ensure the accuracy of all content, but we do not guarantee the completeness, accuracy, or reliability of any information.</p><h2>Third-Party Links</h2><p>This website may contain links to third-party websites. We are not responsible for the content, privacy policies, or security of these external sites.</p>`,
+    },
+  },
+  'privacy-policy': {
+    zh: {
+      title: '隐私政策',
+      html: `<h2>信息收集</h2><p>我们通过以下方式收集信息：访问日志（IP 地址、浏览器类型、访问页面）、Cookie 和类似技术、您主动提供的信息（如邮件订阅）。</p><h2>信息使用</h2><p>收集的信息用于：提供和改善网站服务、分析网站流量和用户行为、发送您订阅的 Newsletter、遵守法律义务。</p><h2>Cookie 使用</h2><p>我们使用必要的 Cookie 来确保网站正常运行，以及分析性 Cookie 来了解网站使用情况。您可以在浏览器中管理 Cookie 偏好。</p><h2>第三方服务</h2><p>我们使用以下第三方服务：Google Analytics（流量分析）、Vercel（网站托管）、Ghost（内容管理）。这些服务可能收集和处理您的数据，请参阅其各自的隐私政策。</p><h2>数据安全</h2><p>我们采取合理的技术和组织措施来保护您的个人信息。全站使用 HTTPS 加密传输。</p><h2>联系我们</h2><p>如对隐私政策有任何疑问，请通过 contact@biyijia.com 联系我们。</p>`,
+    },
+    es: {
+      title: 'Política de Privacidad',
+      html: `<h2>Recopilación de Información</h2><p>Recopilamos información a través de: registros de acceso, cookies y tecnologías similares, e información proporcionada voluntariamente por usted.</p><h2>Uso de Información</h2><p>La información recopilada se utiliza para: proporcionar y mejorar servicios, analizar tráfico, enviar newsletters y cumplir obligaciones legales.</p><h2>Cookies</h2><p>Utilizamos cookies necesarias y analíticas. Puede gestionar sus preferencias de cookies en su navegador.</p><h2>Servicios de Terceros</h2><p>Utilizamos Google Analytics, Vercel y Ghost. Consulte sus respectivas políticas de privacidad.</p><h2>Seguridad</h2><p>Tomamos medidas razonables para proteger su información personal. Todo el sitio utiliza HTTPS.</p><h2>Contacto</h2><p>Para consultas sobre privacidad, contáctenos en contact@biyijia.com.</p>`,
+    },
+    en: {
+      title: 'Privacy Policy',
+      html: `<h2>Information Collection</h2><p>We collect information through: access logs (IP address, browser type, pages visited), cookies and similar technologies, and information you voluntarily provide (such as newsletter subscriptions).</p><h2>Information Use</h2><p>Collected information is used to: provide and improve website services, analyze traffic and user behavior, send newsletters you've subscribed to, and comply with legal obligations.</p><h2>Cookies</h2><p>We use necessary cookies to ensure proper website operation and analytical cookies to understand usage patterns. You can manage cookie preferences in your browser.</p><h2>Third-Party Services</h2><p>We use Google Analytics (traffic analysis), Vercel (hosting), and Ghost (content management). These services may collect your data; please refer to their respective privacy policies.</p><h2>Data Security</h2><p>We take reasonable technical and organizational measures to protect your personal information. The entire site uses HTTPS encryption.</p><h2>Contact Us</h2><p>For any privacy-related questions, please contact us at contact@biyijia.com.</p>`,
+    },
+  },
+  'editorial-policy': {
+    zh: {
+      title: '编辑政策',
+      html: `<h2>我们的使命</h2><p>币易家（biyijia.com）致力于为加密货币用户提供准确、公正、实用的教育内容和工具评测。我们的目标是帮助用户做出明智的决策。</p><h2>内容标准</h2><p>所有文章由具有区块链和加密货币经验的作者撰写，并经过编辑团队审核。我们要求：</p><ul><li>所有教程必须基于实际操作经验，包含真实截图</li><li>评测内容必须基于真实使用体验，提供客观的优缺点分析</li><li>引用的数据必须来自可验证的来源（如链上数据、官方文档）</li><li>所有内容定期审核更新，确保时效性</li></ul><h2>AI 内容政策</h2><p>我们可能使用 AI 工具辅助内容创作（如翻译、初稿生成），但所有发布内容均经过人工审核、事实核查和编辑优化。AI 翻译的内容会明确标注。</p><h2>联盟关系披露</h2><p>本网站通过联盟营销获得收入。我们在相关内容中明确披露联盟关系。联盟关系不会影响我们的内容评价和推荐——我们只推荐我们真正认可的产品和服务。</p><h2>更正政策</h2><p>如发现内容错误，我们会及时更正并在文章中注明更正日期和内容。如您发现任何错误，请通过 contact@biyijia.com 联系我们。</p>`,
+    },
+    es: {
+      title: 'Política Editorial',
+      html: `<h2>Nuestra Misión</h2><p>Biyijia (biyijia.com) se dedica a proporcionar contenido educativo y reseñas precisas, imparciales y útiles para los usuarios de criptomonedas.</p><h2>Estándares de Contenido</h2><p>Todos los artículos son escritos por autores con experiencia en blockchain y criptomonedas, y revisados por nuestro equipo editorial. Requerimos:</p><ul><li>Tutoriales basados en experiencia práctica real con capturas de pantalla</li><li>Reseñas basadas en uso real con análisis objetivo de pros y contras</li><li>Datos de fuentes verificables (datos on-chain, documentación oficial)</li><li>Revisión periódica del contenido para garantizar su vigencia</li></ul><h2>Política de Contenido IA</h2><p>Podemos usar herramientas de IA para asistir en la creación de contenido, pero todo el contenido publicado es revisado, verificado y editado por humanos. El contenido traducido por IA se marca claramente.</p><h2>Divulgación de Afiliados</h2><p>Este sitio genera ingresos a través del marketing de afiliados. Las relaciones de afiliados no afectan nuestras evaluaciones de contenido.</p><h2>Política de Correcciones</h2><p>Si se encuentran errores, los corregimos rápidamente y anotamos la fecha y el contenido de la corrección. Contáctenos en contact@biyijia.com.</p>`,
+    },
+    en: {
+      title: 'Editorial Policy',
+      html: `<h2>Our Mission</h2><p>Biyijia (biyijia.com) is dedicated to providing accurate, unbiased, and practical educational content and tool reviews for cryptocurrency users.</p><h2>Content Standards</h2><p>All articles are written by authors with blockchain and cryptocurrency experience, and reviewed by our editorial team. We require:</p><ul><li>All tutorials must be based on actual hands-on experience with real screenshots</li><li>Reviews must be based on real usage experience with objective pros and cons analysis</li><li>Cited data must come from verifiable sources (on-chain data, official documentation)</li><li>All content is periodically reviewed and updated for accuracy</li></ul><h2>AI Content Policy</h2><p>We may use AI tools to assist content creation (such as translation and draft generation), but all published content undergoes human review, fact-checking, and editorial optimization. AI-translated content is clearly labeled.</p><h2>Affiliate Disclosure</h2><p>This website earns revenue through affiliate marketing. We clearly disclose affiliate relationships in relevant content. Affiliate relationships do not influence our content evaluations—we only recommend products and services we genuinely endorse.</p><h2>Corrections Policy</h2><p>If content errors are found, we correct them promptly and note the correction date and details. If you find any errors, please contact us at contact@biyijia.com.</p>`,
+    },
+  },
+};
+
+let pageTitle = '';
+let pageHtml = '';
+let pageDescription = '';
+
+if (page) {
+  pageTitle = page.meta_title || page.title;
+  pageHtml = sanitizeHtml(page.html);
+  pageDescription = page.meta_description || page.custom_excerpt || '';
+} else if (fallbackPages[slug]) {
+  const fb = fallbackPages[slug][currentLang] || fallbackPages[slug].en;
+  pageTitle = fb.title;
+  pageHtml = fb.html;
+  pageDescription = fb.title;
+} else {
+  return Astro.redirect('/404', 404);
+}
+
+const canonicalUrl = `${SITE_URL}/${currentLang}/page/${slug}`;
+
+const seo = {
+  title: `${pageTitle} | 币易家`,
+  description: pageDescription || pageTitle,
+  canonicalUrl,
+  ogTitle: pageTitle,
+  ogDescription: pageDescription || pageTitle,
+  ogImage: null,
+  ogType: 'website',
+  twitterCard: 'summary' as const,
+  publishedTime: null,
+  modifiedTime: page?.updated_at || null,
+  author: null,
+  lang: currentLang,
+  slug: `page/${slug}`,
+};
+
+const jsonLdList = [buildOrganizationJsonLd()];
+
+Astro.response.headers.set(
+  'Cache-Control',
+  `public, s-maxage=${CACHE_TTL.articleSMaxAge}, stale-while-revalidate=${CACHE_TTL.articleStale}`
+);
+---
+
+<BaseLayout lang={currentLang} title={seo.title}>
+  <SeoHead slot="head" seo={seo} jsonLdList={jsonLdList} />
+
+  <nav class="page-breadcrumb">
+    <a href={`/${currentLang}`}>{t.home}</a>
+    <span> / </span>
+    <span>{pageTitle}</span>
+  </nav>
+
+  <article class="static-page">
+    <h1>{pageTitle}</h1>
+    {page?.updated_at && (
+      <p class="page-updated">
+        {currentLang === 'zh' ? '最后更新：' : currentLang === 'es' ? 'Última actualización: ' : 'Last updated: '}
+        {new Date(page.updated_at).toLocaleDateString(
+          currentLang === 'zh' ? 'zh-CN' : currentLang === 'es' ? 'es-ES' : 'en-US',
+          { year: 'numeric', month: 'long', day: 'numeric' }
+        )}
+      </p>
+    )}
+    <div class="article-body" set:html={pageHtml} />
+  </article>
+</BaseLayout>
+
+<style>
+  .page-breadcrumb {
+    font-size: 0.82rem;
+    color: var(--color-text-light);
+    margin-bottom: 1.5rem;
+  }
+  .page-breadcrumb a {
+    color: var(--color-link);
+    text-decoration: none;
+  }
+  .page-breadcrumb a:hover {
+    text-decoration: underline;
+  }
+
+  .static-page {
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+  .static-page h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    line-height: 1.3;
+  }
+
+  .page-updated {
+    font-size: 0.82rem;
+    color: var(--color-text-light);
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+</style>

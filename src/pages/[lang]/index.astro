@@ -1,0 +1,229 @@
+---
+/**
+ * 语言首页（带分页）
+ * /zh, /es, /en
+ * /zh?page=2, /en?page=3 ...
+ * 显示该语言的文章列表，支持分页
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SeoHead from '../../components/SeoHead.astro';
+import Pagination from '../../components/Pagination.astro';
+import Sidebar from '../../components/Sidebar.astro';
+import { isValidLang, SITE_URL, UI_TEXT, CACHE_TTL, LIST_PAGE_SIZE, type SupportedLang } from '../../lib/env';
+import { getPostList, getPublicTags, getRecentPosts } from '../../lib/ghost';
+import { buildWebSiteJsonLd } from '../../lib/seo';
+
+const { lang } = Astro.params;
+
+if (!lang || !isValidLang(lang)) {
+  return Astro.redirect('/en', 302);
+}
+
+const currentLang = lang as SupportedLang;
+const t = UI_TEXT[currentLang] || UI_TEXT.en;
+
+// 解析分页参数
+const pageParam = Astro.url.searchParams.get('page');
+const currentPage = Math.max(1, parseInt(pageParam || '1', 10) || 1);
+
+// 获取文章列表（分页）
+const { posts, total, pages: totalPages } = await getPostList({
+  lang: currentLang,
+  page: currentPage,
+  limit: LIST_PAGE_SIZE,
+});
+
+// 侧边栏数据
+const [tags, recentPosts] = await Promise.all([
+  getPublicTags(currentLang),
+  getRecentPosts(currentLang, 5),
+]);
+
+// 页码越界重定向
+if (currentPage > 1 && currentPage > totalPages && totalPages > 0) {
+  return Astro.redirect(`/${currentLang}`, 302);
+}
+
+// SEO
+const titleMap: Record<SupportedLang, string> = {
+  zh: '币易家 - 加密货币教程、交易所评测与区块链指南',
+  es: 'Biyijia - Guías de criptomonedas, exchanges y blockchain',
+  en: 'Biyijia - Crypto Guides, Exchange Reviews & Blockchain Tutorials',
+};
+
+const descMap: Record<SupportedLang, string> = {
+  zh: '专业的加密货币入门教程，币安注册指南，USDT 购买教程，P2P 交易教程，交易所对比评测。',
+  es: 'Guías profesionales de criptomonedas: registro en Binance, compra de USDT, tutorial P2P, comparación de exchanges.',
+  en: 'Professional crypto guides: Binance registration, USDT buying guide, P2P trading tutorial, exchange comparisons.',
+};
+
+const pageTitle = currentPage > 1
+  ? `${titleMap[currentLang]} - ${t.page} ${currentPage}`
+  : titleMap[currentLang];
+
+const canonicalUrl = currentPage > 1
+  ? `${SITE_URL}/${currentLang}?page=${currentPage}`
+  : `${SITE_URL}/${currentLang}`;
+
+const seo = {
+  title: pageTitle,
+  description: descMap[currentLang],
+  canonicalUrl,
+  ogTitle: pageTitle,
+  ogDescription: descMap[currentLang],
+  ogImage: null,
+  ogType: 'website',
+  twitterCard: 'summary' as const,
+  publishedTime: null,
+  modifiedTime: null,
+  author: null,
+  lang: currentLang,
+  slug: '',
+};
+
+const jsonLdList = [buildWebSiteJsonLd()];
+
+// prev/next link 标签（SEO）
+const prevUrl = currentPage > 1
+  ? currentPage === 2
+    ? `${SITE_URL}/${currentLang}`
+    : `${SITE_URL}/${currentLang}?page=${currentPage - 1}`
+  : null;
+const nextUrl = currentPage < totalPages
+  ? `${SITE_URL}/${currentLang}?page=${currentPage + 1}`
+  : null;
+
+Astro.response.headers.set(
+  'Cache-Control',
+  `public, s-maxage=${CACHE_TTL.homeSMaxAge}, stale-while-revalidate=3600`
+);
+---
+
+<BaseLayout lang={currentLang} title={seo.title} hasSidebar={true}>
+  <Fragment slot="head">
+    <SeoHead seo={seo} jsonLdList={jsonLdList} />
+    {prevUrl && <link rel="prev" href={prevUrl} />}
+    {nextUrl && <link rel="next" href={nextUrl} />}
+  </Fragment>
+
+  <h1 style="font-size: 1.75rem; margin-bottom: 1.5rem;">
+    {titleMap[currentLang]}
+  </h1>
+
+  {total > 0 && (
+    <p style="color: var(--color-text-light); margin-bottom: 1rem; font-size: 0.85rem;">
+      {currentLang === 'zh' ? `共 ${total} 篇文章` : currentLang === 'es' ? `${total} artículos` : `${total} articles`}
+      {currentPage > 1 && (
+        <span> · {t.page} {currentPage} / {totalPages}</span>
+      )}
+    </p>
+  )}
+
+  {posts.length === 0 && (
+    <p style="color: var(--color-text-light);">
+      {currentLang === 'zh' ? '暂无文章' : currentLang === 'es' ? 'No hay artículos' : 'No articles yet'}
+    </p>
+  )}
+
+  <div class="post-list">
+    {posts.map((post) => (
+      <a href={`/${currentLang}/${post.slug}`} class="post-card">
+        {post.feature_image && (
+          <img src={post.feature_image} alt={post.title} loading="lazy" class="post-img" />
+        )}
+        <div class="post-info">
+          <h2>{post.title}</h2>
+          {post.custom_excerpt && <p>{post.custom_excerpt}</p>}
+          <span class="post-meta">
+            {post.reading_time || 1} {t.readingTime}
+          </span>
+        </div>
+      </a>
+    ))}
+  </div>
+
+  <Pagination
+    currentPage={currentPage}
+    totalPages={totalPages}
+    baseUrl={`/${currentLang}`}
+  />
+
+  <Sidebar
+    slot="sidebar"
+    lang={currentLang}
+    tags={tags}
+    recentPosts={recentPosts}
+    binanceUrl={Astro.locals.affiliate.binanceUrl}
+  />
+</BaseLayout>
+
+<style>
+  .post-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .post-card {
+    display: flex;
+    gap: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: box-shadow 0.2s;
+  }
+  .post-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+  }
+
+  .post-img {
+    width: 200px;
+    min-height: 130px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .post-info {
+    padding: 12px 16px 12px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .post-info h2 {
+    font-size: 1.1rem;
+    line-height: 1.4;
+    margin-bottom: 6px;
+  }
+
+  .post-info p {
+    font-size: 0.85rem;
+    color: var(--color-text-light);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+
+  .post-meta {
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+  }
+
+  @media (max-width: 640px) {
+    .post-card {
+      flex-direction: column;
+    }
+    .post-img {
+      width: 100%;
+      height: 180px;
+    }
+    .post-info {
+      padding: 12px 16px;
+    }
+  }
+</style>

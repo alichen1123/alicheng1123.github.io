@@ -1,0 +1,364 @@
+---
+/**
+ * 全站基础布局
+ * 包含 html lang、全局样式、AffiliateMask
+ */
+import Navigation from '../components/Navigation.astro';
+import PriceTicker from '../components/PriceTicker.astro';
+import AffiliateMask from '../components/AffiliateMask.astro';
+import { UI_TEXT, FOOTER_LEGAL_LINKS, FOOTER_QUICK_LINKS, type SupportedLang } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+  title?: string;
+  hasSidebar?: boolean;
+}
+
+const { lang, title = '币易家 Biyijia', hasSidebar = false } = Astro.props;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <link rel="shortcut icon" href="/favicon.ico" />
+    <!-- GEO: 性能优化 preconnect -->
+    <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+    <link rel="dns-prefetch" href="https://static.ghost.org" />
+    <slot name="head" />
+    <script is:inline>
+      (function(){
+        var t = localStorage.getItem('theme');
+        if (t === 'dark') document.documentElement.setAttribute('data-theme','dark');
+      })();
+    </script>
+    <style is:global>
+      /* ---- 全局基础样式 ---- */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --color-bg: #ffffff;
+        --color-text: #1a1a2e;
+        --color-text-light: #555;
+        --color-primary: #f0b90b;
+        --color-primary-dark: #d4a50a;
+        --color-link: #1e40af;
+        --color-border: #e5e7eb;
+        --color-bg-light: #f9fafb;
+        --color-success: #10b981;
+        --max-width: 780px;
+        --radius: 8px;
+      }
+
+      html[data-theme='dark'] {
+        --color-bg: #0f0f14;
+        --color-text: #e5e5e7;
+        --color-text-light: #9a9aa0;
+        --color-primary: #f0b90b;
+        --color-primary-dark: #d4a50a;
+        --color-link: #60a5fa;
+        --color-border: #2a2a33;
+        --color-bg-light: #1a1a22;
+        --color-success: #34d399;
+        --color-pre-bg: #1e1e28;
+        --color-pre-text: #d4d4d8;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+          'Helvetica Neue', Arial, 'Noto Sans SC', 'PingFang SC', sans-serif;
+        color: var(--color-text);
+        background: var(--color-bg);
+        line-height: 1.7;
+        font-size: 16px;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      a {
+        color: var(--color-link);
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+
+      img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .container {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      /* ---- 双栏布局 ---- */
+      .layout-container {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      .layout-two-col {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 32px;
+        align-items: start;
+      }
+
+      .main-content {
+        min-width: 0;
+      }
+
+      .sidebar-col {
+        position: sticky;
+        top: 72px;
+      }
+
+      @media (max-width: 900px) {
+        .layout-two-col {
+          grid-template-columns: 1fr;
+        }
+        .sidebar-col {
+          position: static;
+        }
+      }
+
+      /* ---- 文章内容排版 ---- */
+      .article-body h2 {
+        font-size: 1.5rem;
+        margin: 2rem 0 1rem;
+        padding-bottom: 0.3rem;
+        border-bottom: 2px solid var(--color-primary);
+        scroll-margin-top: 80px;
+      }
+
+      .article-body h3 {
+        font-size: 1.25rem;
+        margin: 1.5rem 0 0.75rem;
+      }
+
+      .article-body p {
+        margin-bottom: 1rem;
+      }
+
+      .article-body ul,
+      .article-body ol {
+        margin: 1rem 0;
+        padding-left: 1.5rem;
+      }
+
+      .article-body li {
+        margin-bottom: 0.5rem;
+      }
+
+      .article-body blockquote {
+        border-left: 4px solid var(--color-primary);
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        background: var(--color-bg-light);
+        color: var(--color-text-light);
+      }
+
+      .article-body pre {
+        background: var(--color-pre-bg, #1a1a2e);
+        color: var(--color-pre-text, #e5e7eb);
+        padding: 1rem;
+        border-radius: var(--radius);
+        overflow-x: auto;
+        margin: 1rem 0;
+      }
+
+      .article-body code {
+        background: var(--color-bg-light);
+        padding: 0.15rem 0.35rem;
+        border-radius: 3px;
+        font-size: 0.9em;
+      }
+
+      .article-body pre code {
+        background: none;
+        padding: 0;
+      }
+
+      .article-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+      }
+
+      .article-body th,
+      .article-body td {
+        border: 1px solid var(--color-border);
+        padding: 0.6rem 0.8rem;
+        text-align: left;
+      }
+
+      .article-body th {
+        background: var(--color-bg-light);
+        font-weight: 600;
+      }
+
+      /* ---- 自动内链样式 ---- */
+      .article-body .auto-link {
+        color: var(--color-link);
+        text-decoration: none;
+        border-bottom: 1px dashed var(--color-link);
+      }
+      .article-body .auto-link:hover {
+        border-bottom-style: solid;
+      }
+
+      /* ---- Footer ---- */
+      .site-footer {
+        border-top: 1px solid var(--color-border);
+        margin-bottom: 72px;
+        color: var(--color-text-light);
+        font-size: 0.82rem;
+        background: var(--color-bg-light);
+      }
+
+      .footer-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 20px;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 32px;
+      }
+
+      .footer-logo {
+        font-size: 1.2rem;
+        font-weight: 800;
+        color: var(--color-text) !important;
+        text-decoration: none !important;
+        display: block;
+        margin-bottom: 8px;
+      }
+
+      .footer-about {
+        line-height: 1.6;
+        max-width: 300px;
+      }
+
+      .footer-col h4 {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 10px;
+      }
+
+      .footer-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      .footer-col li {
+        margin-bottom: 6px;
+      }
+
+      .footer-col a {
+        color: var(--color-text-light) !important;
+        text-decoration: none !important;
+        transition: color 0.12s;
+      }
+
+      .footer-col a:hover {
+        color: var(--color-primary-dark) !important;
+        text-decoration: none !important;
+      }
+
+      .footer-bottom {
+        border-top: 1px solid var(--color-border);
+        padding: 1rem 20px;
+        text-align: center;
+        font-size: 0.75rem;
+      }
+
+      @media (max-width: 640px) {
+        .footer-inner {
+          grid-template-columns: 1fr;
+          gap: 20px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 全站导航 -->
+    <Navigation lang={lang} binanceUrl={Astro.locals.affiliate.binanceUrl} />
+    <PriceTicker />
+
+    <main class:list={[hasSidebar ? 'layout-container layout-two-col' : 'container']} style="padding-top: 2rem; padding-bottom: 6rem;">
+      {hasSidebar ? (
+        <>
+          <div class="main-content">
+            <slot />
+          </div>
+          <div class="sidebar-col">
+            <slot name="sidebar" />
+          </div>
+        </>
+      ) : (
+        <slot />
+      )}
+    </main>
+
+    <!-- 底栏 -->
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-col">
+          <a href={`/${lang}`} class="footer-logo">币易家</a>
+          <p class="footer-about">
+            {lang === 'zh' ? '专业的加密货币教育平台，提供交易所教程、区块链指南与数字资产评测。' :
+             lang === 'es' ? 'Plataforma educativa profesional de criptomonedas con tutoriales, guías y reseñas.' :
+             'Professional crypto education platform with exchange tutorials, blockchain guides and reviews.'}
+          </p>
+        </div>
+        <div class="footer-col">
+          <h4>{UI_TEXT[lang]?.quickLinks || 'Quick Links'}</h4>
+          <ul>
+            {FOOTER_QUICK_LINKS.map((link) => (
+              <li><a href={`/${lang}/${link.path}`}>{UI_TEXT[lang]?.[link.labelKey] || link.labelKey}</a></li>
+            ))}
+            <li><a href={`/${lang}/page/about`}>{UI_TEXT[lang]?.about || 'About'}</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>{UI_TEXT[lang]?.legalLinks || 'Legal'}</h4>
+          <ul>
+            {FOOTER_LEGAL_LINKS.map((link) => (
+              <li><a href={`/${lang}/page/${link.slug}`}>{UI_TEXT[lang]?.[link.labelKey] || link.labelKey}</a></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; {new Date().getFullYear()} 币易家 Biyijia. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <!-- 底部悬浮联盟转化条 -->
+    <AffiliateMask
+      lang={lang}
+      binanceUrl={Astro.locals.affiliate.binanceUrl}
+      showApk={Astro.locals.affiliate.showApk}
+      apkUrl={Astro.locals.affiliate.apkUrl}
+      inviteCode={Astro.locals.affiliate.inviteCode}
+      ctaText={Astro.locals.affiliate.ctaText}
+      ctaSubtext={Astro.locals.affiliate.ctaSubtext}
+      isCN={Astro.locals.affiliate.isCN}
+    />
+  </body>
+</html>

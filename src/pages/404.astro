@@ -1,0 +1,29 @@
+---
+/**
+ * 404 页面
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { UI_TEXT, DEFAULT_LANG, isValidLang, type SupportedLang } from '../lib/env';
+
+// 尝试从 URL 推断语言
+const pathLang = Astro.url.pathname.split('/')[1];
+const lang: SupportedLang = isValidLang(pathLang) ? pathLang : DEFAULT_LANG;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+
+Astro.response.status = 404;
+---
+
+<BaseLayout lang={lang} title={t.notFound}>
+  <div style="text-align: center; padding: 4rem 0;">
+    <h1 style="font-size: 3rem; color: var(--color-primary); margin-bottom: 1rem;">404</h1>
+    <p style="font-size: 1.25rem; margin-bottom: 2rem; color: var(--color-text-light);">
+      {t.notFoundDesc}
+    </p>
+    <a
+      href={`/${lang}`}
+      style="display: inline-block; background: var(--color-primary); color: var(--color-text); padding: 12px 28px; border-radius: var(--radius); font-weight: 600; text-decoration: none;"
+    >
+      {t.backHome}
+    </a>
+  </div>
+</BaseLayout>

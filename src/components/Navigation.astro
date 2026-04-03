@@ -1,0 +1,796 @@
+---
+/**
+ * 全站导航组件
+ * - 主导航 + 二级下拉菜单
+ * - 移动端汉堡菜单
+ * - 语言切换
+ * - Binance CTA 按钮
+ * 导航数据在 env.ts 的 NAV_ITEMS 中配置
+ */
+import { NAV_ITEMS, UI_TEXT, type SupportedLang } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+  binanceUrl: string;
+}
+
+const { lang, binanceUrl } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+
+/** 从 per-language href 对象中取出当前语言对应的链接 */
+function resolveHref(href: Record<string, string> | undefined): string {
+  if (!href) return '#';
+  return href[lang] || href['en'] || '#';
+}
+---
+
+<header class="site-header">
+  <div class="header-inner">
+    <!-- Logo -->
+    <a href={`/${lang}`} class="logo">
+      <img src="/logo.png" alt="Biyijia" height="36" width="auto" style="height:36px;width:auto;display:block;" />
+    </a>
+
+    <!-- 桌面导航 -->
+    <nav class="desktop-nav" aria-label="Main navigation">
+      {NAV_ITEMS.map((item) => {
+        if (item.isCta) {
+          return (
+            <a
+              href={binanceUrl}
+              target="_blank"
+              rel="noopener sponsored"
+              class="nav-cta"
+            >
+              {item.label[lang]} →
+            </a>
+          );
+        }
+
+        if (item.children && item.children.length > 0) {
+          return (
+            <div class="nav-dropdown">
+              <button class="nav-item has-children" type="button" aria-expanded="false">
+                {item.label[lang]}
+                <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true">
+                  <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+              <div class="dropdown-menu">
+                {item.children.map((child) => (
+                  <a href={resolveHref(child.href)} class="dropdown-item">
+                    {child.label[lang]}
+                  </a>
+                ))}
+              </div>
+            </div>
+          );
+        }
+
+        return (
+          <a href={resolveHref(item.href)} class="nav-item">
+            {item.label[lang]}
+          </a>
+        );
+      })}
+    </nav>
+
+    <!-- 搜索 + 语言切换 + 移动端菜单按钮 -->
+    <div class="header-right">
+      <button class="search-toggle" id="search-toggle" type="button" aria-label={t.searchTitle}>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </button>
+      <!-- 深色模式切换 (Apple 风格) -->
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Toggle dark mode">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-icon theme-toggle-sun">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><g stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></g></svg>
+          </span>
+          <span class="theme-toggle-icon theme-toggle-moon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span class="theme-toggle-thumb"></span>
+        </span>
+      </button>
+      <div class="lang-switcher">
+        <a href="/zh" class:list={['lang-link', { active: lang === 'zh' }]}>中文</a>
+        <a href="/es" class:list={['lang-link', { active: lang === 'es' }]}>ES</a>
+        <a href="/en" class:list={['lang-link', { active: lang === 'en' }]}>EN</a>
+      </div>
+      <button class="mobile-toggle" id="mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false">
+        <span class="hamburger"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 移动端导航面板 -->
+  <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation">
+    {NAV_ITEMS.map((item) => {
+      if (item.isCta) {
+        return (
+          <a
+            href={binanceUrl}
+            target="_blank"
+            rel="noopener sponsored"
+            class="mobile-cta"
+          >
+            {item.label[lang]} →
+          </a>
+        );
+      }
+
+      if (item.children && item.children.length > 0) {
+        return (
+          <div class="mobile-group">
+            <button class="mobile-group-title" type="button" aria-expanded="false">
+              {item.label[lang]}
+              <svg width="10" height="6" viewBox="0 0 10 6" fill="none" aria-hidden="true" class="mobile-arrow">
+                <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+            <div class="mobile-submenu">
+              {item.children.map((child) => (
+                <a href={resolveHref(child.href)} class="mobile-subitem">
+                  {child.label[lang]}
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <a href={resolveHref(item.href)} class="mobile-item">
+          {item.label[lang]}
+        </a>
+      );
+    })}
+    <!-- 移动端搜索 -->
+    <form action={`/${lang}/search`} method="get" class="mobile-search">
+      <input type="text" name="q" placeholder={t.searchPlaceholder} class="mobile-search-input" />
+      <button type="submit" class="mobile-search-btn" aria-label={t.searchBtn}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </button>
+    </form>
+    <!-- 移动端深色模式 -->
+    <div class="mobile-theme-row">
+      <span class="mobile-theme-label">
+        {lang === 'zh' ? '深色模式' : lang === 'es' ? 'Modo oscuro' : 'Dark mode'}
+      </span>
+      <button class="theme-toggle theme-toggle-mobile" id="theme-toggle-mobile" type="button" aria-label="Toggle dark mode">
+        <span class="theme-toggle-track">
+          <span class="theme-toggle-icon theme-toggle-sun">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="5"/><g stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></g></svg>
+          </span>
+          <span class="theme-toggle-icon theme-toggle-moon">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+          <span class="theme-toggle-thumb"></span>
+        </span>
+      </button>
+    </div>
+    <!-- 移动端语言切换 -->
+    <div class="mobile-lang">
+      <a href="/zh" class:list={['lang-link', { active: lang === 'zh' }]}>中文</a>
+      <a href="/es" class:list={['lang-link', { active: lang === 'es' }]}>ES</a>
+      <a href="/en" class:list={['lang-link', { active: lang === 'en' }]}>EN</a>
+    </div>
+  </nav>
+</header>
+
+<!-- 搜索浮层 -->
+<div class="search-overlay" id="search-overlay">
+  <div class="search-overlay-inner">
+    <form action={`/${lang}/search`} method="get" class="search-overlay-form">
+      <input
+        type="text"
+        name="q"
+        placeholder={t.searchPlaceholder}
+        class="search-overlay-input"
+        id="search-overlay-input"
+        autocomplete="off"
+      />
+      <button type="submit" class="search-overlay-btn">{t.searchBtn}</button>
+    </form>
+    <button class="search-overlay-close" id="search-overlay-close" type="button" aria-label={t.closeBtn}>&times;</button>
+  </div>
+</div>
+
+<style>
+  /* ========== Header 容器 ========== */
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .header-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  /* ========== Logo ========== */
+  .logo {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    text-decoration: none !important;
+  }
+
+  /* ========== 桌面导航 ========== */
+  .desktop-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .nav-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    border-radius: 6px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .nav-item:hover {
+    background: var(--color-bg-light);
+    text-decoration: none !important;
+  }
+
+  /* ========== 下拉菜单 ========== */
+  .nav-dropdown {
+    position: relative;
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 210px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    padding: 6px 0;
+    z-index: 200;
+  }
+
+  .nav-dropdown:hover .dropdown-menu,
+  .nav-dropdown:focus-within .dropdown-menu {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: block;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    transition: background 0.12s;
+  }
+  .dropdown-item:hover {
+    background: var(--color-bg-light);
+    color: var(--color-primary-dark) !important;
+    text-decoration: none !important;
+  }
+
+  /* ========== CTA 按钮 ========== */
+  .nav-cta {
+    display: inline-block;
+    padding: 7px 18px;
+    background: var(--color-primary);
+    color: var(--color-text) !important;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: 6px;
+    text-decoration: none !important;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .nav-cta:hover {
+    background: var(--color-primary-dark);
+    text-decoration: none !important;
+  }
+
+  /* ========== 右侧：语言 + 汉堡 ========== */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .lang-switcher {
+    display: flex;
+    gap: 2px;
+    background: var(--color-bg-light);
+    border-radius: 6px;
+    padding: 2px;
+  }
+
+  .lang-link {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--color-text-light) !important;
+    text-decoration: none !important;
+    border-radius: 4px;
+    transition: all 0.12s;
+  }
+  .lang-link:hover {
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+  }
+  .lang-link.active {
+    background: var(--color-bg);
+    color: var(--color-text) !important;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  /* ========== 汉堡按钮 ========== */
+  .mobile-toggle {
+    display: none;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+  }
+  .mobile-toggle:hover {
+    background: var(--color-bg-light);
+  }
+
+  .hamburger,
+  .hamburger::before,
+  .hamburger::after {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--color-text);
+    border-radius: 1px;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .hamburger::before,
+  .hamburger::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 20px;
+  }
+  .hamburger::before { top: -6px; }
+  .hamburger::after { top: 6px; }
+
+  /* 打开状态 */
+  .mobile-toggle[aria-expanded='true'] .hamburger {
+    background: transparent;
+  }
+  .mobile-toggle[aria-expanded='true'] .hamburger::before {
+    top: 0;
+    transform: rotate(45deg);
+  }
+  .mobile-toggle[aria-expanded='true'] .hamburger::after {
+    top: 0;
+    transform: rotate(-45deg);
+  }
+
+  /* ========== 移动端面板 ========== */
+  .mobile-nav {
+    display: none;
+    padding: 12px 20px 20px;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-bg);
+    max-height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .mobile-nav[data-open='true'] {
+    display: block;
+  }
+
+  .mobile-item {
+    display: block;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text) !important;
+    text-decoration: none !important;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-group {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-group-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 10px 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .mobile-arrow {
+    transition: transform 0.2s;
+  }
+  .mobile-group-title[aria-expanded='true'] .mobile-arrow {
+    transform: rotate(180deg);
+  }
+
+  .mobile-submenu {
+    display: none;
+    padding: 0 0 8px 12px;
+  }
+  .mobile-submenu[data-open='true'] {
+    display: block;
+  }
+
+  .mobile-subitem {
+    display: block;
+    padding: 7px 0;
+    font-size: 0.875rem;
+    color: var(--color-text-light) !important;
+    text-decoration: none !important;
+  }
+  .mobile-subitem:hover {
+    color: var(--color-primary-dark) !important;
+  }
+
+  .mobile-cta {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    padding: 12px;
+    background: var(--color-primary);
+    color: var(--color-text) !important;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border-radius: var(--radius);
+    text-decoration: none !important;
+  }
+
+  .mobile-lang {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 16px;
+    background: var(--color-bg-light);
+    border-radius: 6px;
+    padding: 4px;
+  }
+  .mobile-lang .lang-link {
+    padding: 6px 16px;
+    font-size: 0.85rem;
+  }
+
+  /* ========== 深色模式切换 (Apple 风格) ========== */
+  .theme-toggle {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .theme-toggle-track {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #e5e5ea;
+    border-radius: 12px;
+    transition: background 0.3s;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    justify-content: space-between;
+  }
+
+  :global(html[data-theme='dark']) .theme-toggle-track {
+    background: #30d158;
+  }
+
+  .theme-toggle-thumb {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  :global(html[data-theme='dark']) .theme-toggle-thumb {
+    transform: translateX(20px);
+  }
+
+  .theme-toggle-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    z-index: 1;
+  }
+
+  .theme-toggle-sun {
+    color: #f59e0b;
+  }
+
+  .theme-toggle-moon {
+    color: #94a3b8;
+  }
+
+  :global(html[data-theme='dark']) .theme-toggle-moon {
+    color: #fff;
+  }
+
+  /* 移动端深色模式行 */
+  .mobile-theme-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-theme-label {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--color-text);
+  }
+
+  /* ========== 搜索按钮 ========== */
+  .search-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: 6px;
+    color: var(--color-text);
+    transition: background 0.15s;
+  }
+  .search-toggle:hover {
+    background: var(--color-bg-light);
+  }
+
+  /* ========== 搜索浮层 ========== */
+  .search-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 300;
+    background: rgba(0, 0, 0, 0.5);
+    align-items: flex-start;
+    justify-content: center;
+    padding-top: 80px;
+  }
+  .search-overlay[data-open='true'] {
+    display: flex;
+  }
+
+  .search-overlay-inner {
+    position: relative;
+    width: 90%;
+    max-width: 560px;
+    background: var(--color-bg);
+    border-radius: var(--radius);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+  }
+
+  .search-overlay-form {
+    display: flex;
+    gap: 8px;
+  }
+
+  .search-overlay-input {
+    flex: 1;
+    padding: 12px 14px;
+    font-size: 1rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    background: var(--color-bg);
+    color: var(--color-text);
+    transition: border-color 0.2s;
+  }
+  .search-overlay-input:focus {
+    border-color: var(--color-primary);
+  }
+
+  .search-overlay-btn {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background: var(--color-primary);
+    color: var(--color-text);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .search-overlay-btn:hover {
+    background: var(--color-primary-dark);
+  }
+
+  .search-overlay-close {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    width: 32px;
+    height: 32px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    font-size: 1.2rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-light);
+    transition: color 0.15s;
+  }
+  .search-overlay-close:hover {
+    color: var(--color-text);
+  }
+
+  /* ========== 移动端搜索 ========== */
+  .mobile-search {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .mobile-search-input {
+    flex: 1;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    outline: none;
+    background: var(--color-bg);
+    color: var(--color-text);
+  }
+  .mobile-search-input:focus {
+    border-color: var(--color-primary);
+  }
+
+  .mobile-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    color: var(--color-text);
+  }
+
+  /* ========== 响应式 ========== */
+  @media (max-width: 768px) {
+    .desktop-nav {
+      display: none;
+    }
+    .header-right .lang-switcher {
+      display: none;
+    }
+    .header-right > #theme-toggle {
+      display: none;
+    }
+    .mobile-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  // 移动端菜单开关
+  const toggle = document.getElementById('mobile-toggle');
+  const mobileNav = document.getElementById('mobile-nav');
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = mobileNav?.getAttribute('data-open') === 'true';
+    mobileNav?.setAttribute('data-open', isOpen ? 'false' : 'true');
+    toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  });
+
+  // 搜索浮层
+  const searchToggle = document.getElementById('search-toggle');
+  const searchOverlay = document.getElementById('search-overlay');
+  const searchClose = document.getElementById('search-overlay-close');
+  const searchInput = document.getElementById('search-overlay-input') as HTMLInputElement | null;
+
+  searchToggle?.addEventListener('click', () => {
+    searchOverlay?.setAttribute('data-open', 'true');
+    searchInput?.focus();
+  });
+
+  searchClose?.addEventListener('click', () => {
+    searchOverlay?.setAttribute('data-open', 'false');
+  });
+
+  searchOverlay?.addEventListener('click', (e) => {
+    if (e.target === searchOverlay) {
+      searchOverlay.setAttribute('data-open', 'false');
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && searchOverlay?.getAttribute('data-open') === 'true') {
+      searchOverlay.setAttribute('data-open', 'false');
+    }
+  });
+
+  // 深色模式切换
+  function toggleTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    if (next === 'light') {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.removeItem('theme');
+    }
+  }
+
+  document.getElementById('theme-toggle')?.addEventListener('click', toggleTheme);
+  document.getElementById('theme-toggle-mobile')?.addEventListener('click', toggleTheme);
+
+  // 移动端二级菜单展开/收起
+  document.querySelectorAll('.mobile-group-title').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const expanded = btn.getAttribute('aria-expanded') === 'true';
+      btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      const submenu = btn.nextElementSibling as HTMLElement | null;
+      submenu?.setAttribute('data-open', expanded ? 'false' : 'true');
+    });
+  });
+</script>

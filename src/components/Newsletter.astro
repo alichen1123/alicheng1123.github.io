@@ -1,0 +1,81 @@
+---
+/**
+ * Newsletter 订阅组件
+ * 使用 Ghost 官方 signup-form 脚本实现订阅
+ */
+import { UI_TEXT, type SupportedLang } from '../lib/env';
+import { GHOST_API_URL } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+  variant?: 'inline' | 'sidebar';
+}
+
+const { lang, variant = 'inline' } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+---
+
+<div class:list={['newsletter', `newsletter-${variant}`]}>
+  <div class="newsletter-content">
+    <h3 class="newsletter-title">{t.newsletterTitle}</h3>
+    <p class="newsletter-desc">{t.newsletterDesc}</p>
+  </div>
+  <div
+    class="ghost-signup-wrap"
+    data-ghost-url={GHOST_API_URL}
+    data-lang={lang}
+    style="min-height:58px;width:100%"
+  ></div>
+</div>
+
+<style>
+  .newsletter {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    color: #fff;
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+
+  .newsletter-sidebar {
+    padding: 16px;
+  }
+
+  .newsletter-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .newsletter-sidebar .newsletter-title {
+    font-size: 0.95rem;
+  }
+
+  .newsletter-desc {
+    font-size: 0.82rem;
+    opacity: 0.8;
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  .ghost-signup-wrap {
+    width: 100%;
+  }
+</style>
+
+<script>
+  document.querySelectorAll('.ghost-signup-wrap').forEach((wrap) => {
+    const el = wrap as HTMLElement;
+    const ghostUrl = el.dataset.ghostUrl;
+    const lang = el.dataset.lang || 'en';
+    if (!ghostUrl) return;
+
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/ghost/signup-form@~0.3/umd/signup-form.min.js';
+    script.setAttribute('data-button-color', '#F0B90B');
+    script.setAttribute('data-button-text-color', '#1a1a2e');
+    script.setAttribute('data-site', ghostUrl);
+    script.setAttribute('data-locale', lang);
+    script.async = true;
+    el.appendChild(script);
+  });
+</script>

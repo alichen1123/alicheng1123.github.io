@@ -1,0 +1,175 @@
+---
+/**
+ * ============================================
+ * 核心文章页（SSR 动态路由）
+ * ============================================
+ * 路由：/[lang]/[slug]
+ * 示例：/zh/binance-referral-code-b2345
+ *
+ * 流程：
+ * 1. 校验语言
+ * 2. 从 Ghost 获取文章（按 slug + lang）
+ * 3. 如果目标语言缺失，AI 翻译兜底
+ * 4. 构建 SEO 元数据 + JSON-LD
+ * 5. 渲染完整页面
+ * 6. 设置 Vercel 缓存头
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import SeoHead from '../../components/SeoHead.astro';
+import Breadcrumbs from '../../components/Breadcrumbs.astro';
+import ArticleContent from '../../components/ArticleContent.astro';
+import RelatedPosts from '../../components/RelatedPosts.astro';
+
+import Sidebar from '../../components/Sidebar.astro';
+import { isValidLang, CACHE_TTL, FALLBACK_LANG, type SupportedLang } from '../../lib/env';
+import { getPostBySlugAndLang, getPostBySlug, getRelatedPosts, detectPostLang, getPublicTags, getRecentPosts } from '../../lib/ghost';
+import { translateContent } from '../../lib/ai-translate';
+import { buildSeoMeta, buildArticleJsonLd, buildBreadcrumbJsonLd, buildFaqJsonLd, buildHowToJsonLd, buildReviewJsonLd, buildDefinedTermsJsonLd } from '../../lib/seo';
+import { processPostContent } from '../../lib/content';
+
+// --------------------------------------------------
+// 1. 参数校验
+// --------------------------------------------------
+
+const { lang, slug } = Astro.params;
+
+// 语言校验
+if (!lang || !isValidLang(lang)) {
+  return Astro.redirect('/en', 302);
+}
+
+// slug 校验
+if (!slug) {
+  return Astro.redirect(`/${lang}`, 302);
+}
+
+const currentLang = lang as SupportedLang;
+
+// --------------------------------------------------
+// 2. 从 Ghost 获取文章
+// --------------------------------------------------
+
+let post = await getPostBySlugAndLang(slug, currentLang);
+let isTranslated = false;
+
+// --------------------------------------------------
+// 3. 如果目标语言不存在，尝试 fallback + AI 翻译
+// --------------------------------------------------
+
+if (!post) {
+  // 尝试获取任意语言版本
+  const fallbackPost = await getPostBySlug(slug);
+
+  if (!fallbackPost) {
+    // 文章完全不存在 → 404
+    Astro.response.status = 404;
+    return Astro.redirect('/404', 404);
+  }
+
+  // 检测原文语言
+  const sourceLang = fallbackPost.lang || FALLBACK_LANG;
+
+  if (sourceLang !== currentLang) {
+    // 尝试 AI 翻译
+    const translated = await translateContent(
+      fallbackPost.title,
+      fallbackPost.html,
+      fallbackPost.custom_excerpt || '',
+      sourceLang,
+      currentLang,
+      slug
+    );
+
+    if (translated) {
+      fallbackPost.title = translated.title;
+      fallbackPost.html = translated.html;
+      fallbackPost.custom_excerpt = translated.excerpt || fallbackPost.custom_excerpt;
+      isTranslated = true;
+    }
+    // 翻译失败则用原文显示
+  }
+
+  post = fallbackPost;
+}
+
+post.lang = currentLang;
+post.isTranslated = isTranslated;
+
+// --------------------------------------------------
+// 4. 处理内容 + 构建 SEO 数据
+// --------------------------------------------------
+
+const processed = processPostContent(post, currentLang);
+const seo = buildSeoMeta(post, currentLang);
+const affiliate = Astro.locals.affiliate;
+
+// JSON-LD（GEO 增强：根据内容类型自动生成对应 schema）
+const jsonLdList: object[] = [
+  buildArticleJsonLd(post, currentLang, processed.blocks),
+  buildBreadcrumbJsonLd(currentLang, slug, post.title),
+];
+
+// FAQ JSON-LD
+const faqJsonLd = buildFaqJsonLd(processed.blocks.faqs);
+if (faqJsonLd) jsonLdList.push(faqJsonLd);
+
+// GEO: HowTo JSON-LD（教程类）
+if (processed.blocks.contentType === 'howto') {
+  const howToLd = buildHowToJsonLd(post, currentLang, processed.blocks.howToSteps, processed.blocks);
+  if (howToLd) jsonLdList.push(howToLd);
+}
+
+// GEO: Review JSON-LD（评测类）
+if (processed.blocks.contentType === 'review' && processed.blocks.reviewData) {
+  const reviewLd = buildReviewJsonLd(post, currentLang, processed.blocks.reviewData);
+  if (reviewLd) jsonLdList.push(reviewLd);
+}
+
+// GEO: DefinedTerm JSON-LD（术语定义）
+if (processed.blocks.definedTerms.length > 0) {
+  const termsLd = buildDefinedTermsJsonLd(processed.blocks.definedTerms, currentLang);
+  if (termsLd) jsonLdList.push(termsLd);
+}
+
+// --------------------------------------------------
+// 5. 获取相关文章
+// --------------------------------------------------
+
+const [relatedPosts, sidebarTags, sidebarRecent] = await Promise.all([
+  getRelatedPosts(post, currentLang, 4),
+  getPublicTags(currentLang),
+  getRecentPosts(currentLang, 5, slug),
+]);
+
+// --------------------------------------------------
+// 6. 设置缓存头
+// --------------------------------------------------
+
+Astro.response.headers.set(
+  'Cache-Control',
+  `public, s-maxage=${CACHE_TTL.articleSMaxAge}, stale-while-revalidate=${CACHE_TTL.articleStale}`
+);
+---
+
+<BaseLayout lang={currentLang} title={seo.title} hasSidebar={true}>
+  <SeoHead slot="head" seo={seo} jsonLdList={jsonLdList} />
+
+  <Breadcrumbs lang={currentLang} currentTitle={post.title} />
+
+  <ArticleContent
+    processed={processed}
+    lang={currentLang}
+    affiliate={affiliate}
+  />
+
+  <RelatedPosts posts={relatedPosts} lang={currentLang} />
+
+  <Sidebar
+    slot="sidebar"
+    lang={currentLang}
+    tags={sidebarTags}
+    recentPosts={sidebarRecent}
+    binanceUrl={affiliate.binanceUrl}
+    outline={processed.blocks.outline}
+  />
+</BaseLayout>

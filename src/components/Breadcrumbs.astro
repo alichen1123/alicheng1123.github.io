@@ -1,0 +1,54 @@
+---
+/**
+ * 面包屑导航
+ */
+import { UI_TEXT, type SupportedLang } from '../lib/env';
+
+interface Props {
+  lang: SupportedLang;
+  currentTitle: string;
+}
+
+const { lang, currentTitle } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+---
+
+<nav aria-label="breadcrumb" class="breadcrumbs">
+  <ol>
+    <li><a href={`/${lang}`}>{t.home}</a></li>
+    <li aria-current="page">{currentTitle}</li>
+  </ol>
+</nav>
+
+<style>
+  .breadcrumbs {
+    margin-bottom: 1rem;
+    font-size: 0.8rem;
+  }
+  .breadcrumbs ol {
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 0;
+  }
+  .breadcrumbs li {
+    color: var(--color-text-light);
+  }
+  .breadcrumbs li + li::before {
+    content: '›';
+    margin: 0 6px;
+    color: var(--color-text-light);
+  }
+  .breadcrumbs a {
+    color: var(--color-link);
+  }
+  .breadcrumbs li[aria-current='page'] {
+    color: var(--color-text);
+    font-weight: 500;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>

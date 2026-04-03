@@ -1,0 +1,104 @@
+---
+/**
+ * 相关文章组件
+ */
+import type { GhostPost } from '../lib/ghost';
+import { UI_TEXT, type SupportedLang } from '../lib/env';
+
+interface Props {
+  posts: GhostPost[];
+  lang: SupportedLang;
+}
+
+const { posts, lang } = Astro.props;
+const t = UI_TEXT[lang] || UI_TEXT.en;
+---
+
+{posts.length > 0 && (
+  <section class="related-posts">
+    <h2>{t.relatedPosts}</h2>
+    <div class="related-grid">
+      {posts.map((post) => (
+        <a href={`/${lang}/${post.slug}`} class="related-card">
+          {post.feature_image && (
+            <img
+              src={post.feature_image}
+              alt={post.title}
+              loading="lazy"
+              class="related-img"
+            />
+          )}
+          <div class="related-info">
+            <h3>{post.title}</h3>
+            {post.custom_excerpt && (
+              <p class="related-excerpt">{post.custom_excerpt}</p>
+            )}
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+)}
+
+<style>
+  .related-posts {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .related-posts h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    border: none;
+  }
+
+  .related-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+  }
+
+  .related-card {
+    display: block;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    text-decoration: none;
+    color: var(--color-text);
+    transition: box-shadow 0.2s;
+  }
+  .related-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    text-decoration: none;
+  }
+
+  .related-img {
+    width: 100%;
+    height: 130px;
+    object-fit: cover;
+  }
+
+  .related-info {
+    padding: 10px 12px;
+  }
+
+  .related-info h3 {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .related-excerpt {
+    font-size: 0.78rem;
+    color: var(--color-text-light);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+</style>
