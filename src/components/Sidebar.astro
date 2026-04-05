@@ -560,6 +560,7 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 <script>
 (function(){
   const API = '/api/market';
+  const API_FALLBACK = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&sparkline=false&price_change_percentage=24h';
   let coins = [];
   let tab   = 'gainers';
 
@@ -618,17 +619,21 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
       const up   = pct >= 0;
       const disp = tab === 'volume' ? fVol(c.total_volume) : (up ? '+' : '') + pct.toFixed(2) + '%';
       const fb   = c.symbol.slice(0,2).toUpperCase();
-      return `<div class="ranking-item" data-id="${c.id}">
-        <span class="rank-num">${i+1}</span>
-        <span class="coin-avatar">
+      const pctColor = up ? '#0ecb81' : '#f6465d';
+      return `<div data-id="${c.id}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer;transition:background .12s"
+                   onmouseenter="this.style.background='var(--color-bg-light)'"
+                   onmouseleave="this.style.background='transparent'">
+        <span style="font-size:11px;font-weight:600;color:var(--color-text-light);width:14px;text-align:right;flex-shrink:0">${i+1}</span>
+        <span style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--color-bg-light);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--color-text-light)">
           <img src="${c.image}" alt="${c.symbol}"
+               style="width:26px;height:26px;object-fit:cover;border-radius:50%;display:block"
                onerror="this.style.display='none';this.parentNode.textContent='${fb}'" />
         </span>
-        <span class="coin-meta">
-          <span class="coin-sym">${c.symbol.toUpperCase()}</span>
-          <span class="coin-name">${c.name}</span>
+        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
+          <span style="font-size:12px;font-weight:700;color:var(--color-text);line-height:1.2">${c.symbol.toUpperCase()}</span>
+          <span style="font-size:10px;color:var(--color-text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
         </span>
-        <span class="coin-pct ${up ? 'up' : 'down'}">${disp}</span>
+        <span style="font-size:12px;font-weight:700;color:${pctColor};margin-left:auto;flex-shrink:0;min-width:48px;text-align:right">${disp}</span>
       </div>`;
     }).join('');
 
@@ -685,11 +690,16 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 
   async function load(){
     try {
-      const r = await fetch(API);
-      if (!r.ok) return;
+      let r = await fetch(API);
+      if (!r.ok) throw new Error('proxy failed');
       coins = await r.json();
-      render();
-    } catch {}
+    } catch {
+      try {
+        const r2 = await fetch(API_FALLBACK);
+        if (r2.ok) coins = await r2.json();
+      } catch {}
+    }
+    render();
   }
 
   load();
