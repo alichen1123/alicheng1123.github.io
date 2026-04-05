@@ -690,7 +690,8 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
         '</div>' +
         '<iframe data-frame="tv" src="' + buildChartUrl(sym, interval) + '" frameborder="0" allowtransparency="1" ' +
         'style="width:100%;height:200px;display:block;border:none" ' +
-        'onerror="this.parentNode.innerHTML='<div style=&quot;height:200px;display:flex;align-items:center;justify-content:center;color:#848e9c;font-size:12px&quot;>暂无图表数据</div>'"></iframe>';
+        'onerror="this.style.display=\\'none\\'"></iframe>' +
+        '<div data-chart-err style="display:none;height:200px;align-items:center;justify-content:center;color:#848e9c;font-size:12px">暂无图表数据</div>';
 
       chartEl.querySelectorAll('button[data-period]').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -704,19 +705,18 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
         });
       });
 
-      // 5秒后检测 iframe 是否加载失败（TradingView 找不到交易对时不触发 onerror）
+      // 5秒后检测 iframe 是否加载失败
       setTimeout(() => {
         const frame = chartEl.querySelector('[data-frame="tv"]');
         if (!frame) return;
         try {
           const doc = frame.contentDocument || frame.contentWindow.document;
           if (doc && doc.body && doc.body.innerText.includes('Try picking another')) {
-            chartEl.querySelector('[data-frame="tv"]').outerHTML =
-              '<div style="height:200px;display:flex;align-items:center;justify-content:center;color:#848e9c;font-size:12px">暂无图表数据</div>';
+            frame.style.display = 'none';
+            const errDiv = chartEl.querySelector('[data-chart-err]');
+            if (errDiv) errDiv.style.display = 'flex';
           }
-        } catch(e) {
-          // 跨域无法读取内容，说明正常加载中，不处理
-        }
+        } catch(e) {}
       }, 5000);
     }
 
