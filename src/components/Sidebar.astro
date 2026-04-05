@@ -559,46 +559,43 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 
 <script>
 (function(){
-  const API = '/api/market';
-  const API_FALLBACK = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&sparkline=false&price_change_percentage=24h';
-  let coins = [];
-  let tab   = 'gainers';
-
-  const listEl  = document.querySelector('[data-cm="ranking-list"]');
-  const overlay = document.querySelector('[data-cm="overlay"]');
-  const closeEl = document.querySelector('[data-cm="x"]');
-  const BINANCE_REF = 'B2345';
-
-  const SYM_MAP = {
-    matic:'POL', iota:'IOTA', miota:'IOTA', nano:'XNO', xno:'XNO'
-  };
+  var API = '/api/market';
+  var API_FB = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&sparkline=false&price_change_percentage=24h';
+  var coins = [];
+  var tab = 'gainers';
+  var BINANCE_REF = 'B2345';
+  var SYM_MAP = {matic:'POL',iota:'IOTA',miota:'IOTA',nano:'XNO',xno:'XNO'};
 
   function bSym(s){ return SYM_MAP[s.toLowerCase()] || s.toUpperCase(); }
 
   function bUrl(s){
-    const sym = bSym(s);
-    const st  = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
-    return st.includes(sym)
+    var sym = bSym(s);
+    var st = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
+    return st.indexOf(sym) >= 0
       ? 'https://www.binance.com/markets/overview?ref=' + BINANCE_REF
       : 'https://www.binance.com/trade/' + sym + '_USDT?ref=' + BINANCE_REF;
   }
 
   function fPrice(p){
-    if (p >= 1000) return '$' + p.toLocaleString('en-US', {maximumFractionDigits:0});
-    if (p >= 1)    return '$' + p.toFixed(2);
-    if (p >= .01)  return '$' + p.toFixed(4);
-    return '$' + p.toFixed(6);
+    if(p>=1000) return '$'+p.toLocaleString('en-US',{maximumFractionDigits:0});
+    if(p>=1)    return '$'+p.toFixed(2);
+    if(p>=0.01) return '$'+p.toFixed(4);
+    return '$'+p.toFixed(6);
   }
 
   function fVol(v){
-    if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
-    if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
-    return '$' + (v/1e3).toFixed(1) + 'K';
+    if(v>=1e9) return '$'+(v/1e9).toFixed(2)+'B';
+    if(v>=1e6) return '$'+(v/1e6).toFixed(2)+'M';
+    return '$'+(v/1e3).toFixed(1)+'K';
   }
 
-  document.querySelectorAll('.ranking-tab').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.ranking-tab').forEach(b => b.classList.remove('active'));
+  var listEl  = document.querySelector('[data-cm="ranking-list"]');
+  var overlay = document.querySelector('[data-cm="overlay"]');
+  var closeEl = document.querySelector('[data-cm="x"]');
+
+  document.querySelectorAll('.ranking-tab').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.ranking-tab').forEach(function(b){ b.classList.remove('active'); });
       btn.classList.add('active');
       tab = btn.dataset.tab;
       render();
@@ -606,122 +603,124 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
   });
 
   function getList(){
-    const v = coins.filter(c => c.price_change_percentage_24h != null);
-    if (tab === 'gainers') return [...v].sort((a,b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0,7);
-    if (tab === 'losers')  return [...v].sort((a,b) => a.price_change_percentage_24h - b.price_change_percentage_24h).slice(0,7);
-    return [...coins].sort((a,b) => b.total_volume - a.total_volume).slice(0,7);
+    var v = coins.filter(function(c){ return c.price_change_percentage_24h != null; });
+    if(tab === 'gainers') return v.slice().sort(function(a,b){ return b.price_change_percentage_24h - a.price_change_percentage_24h; }).slice(0,7);
+    if(tab === 'losers')  return v.slice().sort(function(a,b){ return a.price_change_percentage_24h - b.price_change_percentage_24h; }).slice(0,7);
+    return coins.slice().sort(function(a,b){ return b.total_volume - a.total_volume; }).slice(0,7);
   }
 
   function render(){
-    if (!listEl || !coins.length) return;
-    listEl.innerHTML = getList().map((c, i) => {
-      const pct  = c.price_change_percentage_24h ?? 0;
-      const up   = pct >= 0;
-      const disp = tab === 'volume' ? fVol(c.total_volume) : (up ? '+' : '') + pct.toFixed(2) + '%';
-      const fb   = c.symbol.slice(0,2).toUpperCase();
-      const pctColor = up ? '#0ecb81' : '#f6465d';
-      return `<div data-rid="${c.id}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer;transition:background .12s"
-                   onmouseenter="this.style.background='var(--color-bg-light)'"
-                   onmouseleave="this.style.background='transparent'">
-        <span style="font-size:11px;font-weight:600;color:var(--color-text-light);width:14px;text-align:right;flex-shrink:0">${i+1}</span>
-        <span style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--color-bg-light);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--color-text-light)">
-          <img src="${c.image}" alt="${c.symbol}"
-               style="width:26px;height:26px;object-fit:cover;border-radius:50%;display:block"
-               onerror="this.style.display='none';this.parentNode.textContent='${fb}'" />
-        </span>
-        <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">
-          <span style="font-size:12px;font-weight:700;color:var(--color-text);line-height:1.2">${c.symbol.toUpperCase()}</span>
-          <span style="font-size:10px;color:var(--color-text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${c.name}</span>
-        </span>
-        <span style="font-size:12px;font-weight:700;color:${pctColor};margin-left:auto;flex-shrink:0;min-width:48px;text-align:right">${disp}</span>
-      </div>`;
-    }).join('');
-
-    listEl.querySelectorAll('[data-rid]').forEach(el => {
-      el.addEventListener('click', () => {
-        const c = coins.find(x => x.id === el.dataset.rid);
-        if (c) openModal(c);
+    if(!listEl || !coins.length) return;
+    var html = '';
+    var list = getList();
+    for(var i=0; i<list.length; i++){
+      var c = list[i];
+      var pct = c.price_change_percentage_24h || 0;
+      var up  = pct >= 0;
+      var disp = tab === 'volume' ? fVol(c.total_volume) : (up?'+':'')+pct.toFixed(2)+'%';
+      var pctColor = up ? '#0ecb81' : '#f6465d';
+      var fb = c.symbol.slice(0,2).toUpperCase();
+      html += '<div data-rid="'+c.id+'" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer"'+
+        ' onmouseenter="this.style.background='var(--color-bg-light)'"'+
+        ' onmouseleave="this.style.background='transparent'">';
+      html += '<span style="font-size:11px;font-weight:600;color:var(--color-text-light);width:14px;text-align:right;flex-shrink:0">'+(i+1)+'</span>';
+      html += '<span style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--color-bg-light);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--color-text-light)">';
+      html += '<img src="'+c.image+'" alt="'+c.symbol+'" style="width:26px;height:26px;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none';this.parentNode.textContent=''+fb+''">';
+      html += '</span>';
+      html += '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">';
+      html += '<span style="font-size:12px;font-weight:700;color:var(--color-text);line-height:1.2">'+c.symbol.toUpperCase()+'</span>';
+      html += '<span style="font-size:10px;color:var(--color-text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+c.name+'</span>';
+      html += '</span>';
+      html += '<span style="font-size:12px;font-weight:700;color:'+pctColor+';margin-left:auto;flex-shrink:0;min-width:48px;text-align:right">'+disp+'</span>';
+      html += '</div>';
+    }
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('[data-rid]').forEach(function(el){
+      el.addEventListener('click', function(){
+        var c = null;
+        for(var i=0;i<coins.length;i++){ if(coins[i].id===el.dataset.rid){ c=coins[i]; break; } }
+        if(c) openModal(c);
       });
     });
   }
 
+  function buildChartUrl(sym, interval){
+    return 'https://s.tradingview.com/widgetembed/?frameElementId=tv-iframe&symbol='+sym+
+      '&interval='+interval+'&theme=dark&style=1&locale=en'+
+      '&hide_top_toolbar=1&hide_legend=0&hide_side_toolbar=1'+
+      '&allow_symbol_change=0&save_image=0&withdateranges=0&utm_source=biyijia.com';
+  }
+
   function openModal(c){
-    const pct = c.price_change_percentage_24h ?? 0;
-    const up  = pct >= 0;
+    var pct = c.price_change_percentage_24h || 0;
+    var up  = pct >= 0;
 
-    document.querySelector('[data-cm="logo"]').src           = c.image;
-    document.querySelector('[data-cm="logo"]').alt           = c.name;
+    document.querySelector('[data-cm="logo"]').src = c.image;
+    document.querySelector('[data-cm="logo"]').alt = c.name;
     document.querySelector('[data-cm="fullname"]').textContent = c.name;
-    document.querySelector('[data-cm="sym"]').textContent     = c.symbol.toUpperCase();
-    document.querySelector('[data-cm="mcrank"]').textContent  = '#' + c.market_cap_rank;
-    document.querySelector('[data-cm="price"]').textContent   = fPrice(c.current_price);
-    document.querySelector('[data-cm="vol"]').textContent     = fVol(c.total_volume);
-    document.querySelector('[data-cm="rank2"]').textContent   = '#' + c.market_cap_rank;
+    document.querySelector('[data-cm="sym"]').textContent = c.symbol.toUpperCase();
+    document.querySelector('[data-cm="mcrank"]').textContent = '#'+c.market_cap_rank;
+    document.querySelector('[data-cm="price"]').textContent = fPrice(c.current_price);
+    document.querySelector('[data-cm="vol"]').textContent = fVol(c.total_volume);
+    document.querySelector('[data-cm="rank2"]').textContent = '#'+c.market_cap_rank;
 
-    const chgEl = document.querySelector('[data-cm="chg"]');
-    chgEl.textContent = (up ? '+' : '') + pct.toFixed(2) + '%';
-    chgEl.className   = 'cm-chg ' + (up ? 'up' : 'down');
+    var chgEl = document.querySelector('[data-cm="chg"]');
+    chgEl.textContent = (up?'+':'')+pct.toFixed(2)+'%';
+    chgEl.className = 'cm-chg '+(up?'up':'down');
 
-    document.querySelector('[data-cm="trade"]').href = bUrl(c.symbol);
-    document.querySelector('[data-cm="trade"]').textContent =
-      (document.documentElement.lang === 'zh' ? '币安交易 ' : 'Trade ')
-      + c.symbol.toUpperCase() + '/USDT';
+    var tradeEl = document.querySelector('[data-cm="trade"]');
+    tradeEl.href = bUrl(c.symbol);
+    var lang = document.documentElement.lang;
+    tradeEl.textContent = (lang==='zh'?'币安交易 ':'Trade ')+c.symbol.toUpperCase()+'/USDT';
 
-    const tvSym = 'BINANCE:' + bSym(c.symbol) + 'USDT';
-    const chartEl = document.querySelector('[data-cm="chart"]');
-    let currentPeriod = '1D';
-    const periodMap = { '1D':'D', '1W':'W', '1M':'M', '3M':'3M' };
+    var tvSym = 'BINANCE:'+bSym(c.symbol)+'USDT';
+    var chartEl = document.querySelector('[data-cm="chart"]');
+    var currentPeriod = '1D';
+    var periodMap = {'1D':'D','1W':'W','1M':'M','3M':'3M'};
 
-    function buildChartUrl(sym, interval) {
-      return 'https://s.tradingview.com/widgetembed/?frameElementId=tv-iframe&symbol=' + sym +
-        '&interval=' + interval + '&theme=dark&style=1&locale=en' +
-        '&hide_top_toolbar=1&hide_legend=0&hide_side_toolbar=1' +
-        '&allow_symbol_change=0&save_image=0&withdateranges=0&utm_source=biyijia.com';
-    }
-
-    function buildChart(sym, interval) {
+    function buildChart(interval){
+      var tabsHtml = '';
+      var periods = ['1D','1W','1M','3M'];
+      for(var pi=0;pi<periods.length;pi++){
+        var p = periods[pi];
+        var active = p===currentPeriod;
+        tabsHtml += '<button data-period="'+p+'" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;'+
+          'background:'+(active?'#2b3139':'transparent')+';'+
+          'color:'+(active?'#eaecef':'#848e9c')+';transition:all .15s">'+p+'</button>';
+      }
       chartEl.innerHTML =
-        '<div style="display:flex;gap:4px;padding:8px 10px 0;background:#1e2329">' +
-        ['1D','1W','1M','3M'].map(p =>
-          '<button data-period="' + p + '" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;' +
-          'background:' + (p === currentPeriod ? '#2b3139' : 'transparent') + ';' +
-          'color:' + (p === currentPeriod ? '#eaecef' : '#848e9c') + ';transition:all .15s">' + p + '</button>'
-        ).join('') +
-        '</div>' +
-        '<iframe data-frame="tv" src="' + buildChartUrl(sym, interval) + '" frameborder="0" allowtransparency="1" ' +
-        'style="width:100%;height:200px;display:block;border:none" ' +
-        'onerror="this.style.display=\\'none\\'"></iframe>' +
-        '<div data-chart-err style="display:none;height:200px;align-items:center;justify-content:center;color:#848e9c;font-size:12px">暂无图表数据</div>';
+        '<div style="display:flex;gap:4px;padding:8px 10px 0;background:#1e2329">'+tabsHtml+'</div>'+
+        '<iframe data-frame="tv" src="'+buildChartUrl(tvSym,interval)+'" frameborder="0" allowtransparency="1" '+
+        'style="width:100%;height:200px;display:block;border:none"></iframe>'+
+        '<div data-chart-err style="display:none;height:200px;align-items:center;justify-content:center;color:#848e9c;font-size:12px;text-align:center">暂无图表数据</div>';
 
-      chartEl.querySelectorAll('button[data-period]').forEach(btn => {
-        btn.addEventListener('click', () => {
+      chartEl.querySelectorAll('button[data-period]').forEach(function(btn){
+        btn.addEventListener('click', function(){
           currentPeriod = btn.dataset.period;
-          chartEl.querySelectorAll('button[data-period]').forEach(b => {
-            b.style.background = b === btn ? '#2b3139' : 'transparent';
-            b.style.color      = b === btn ? '#eaecef' : '#848e9c';
+          chartEl.querySelectorAll('button[data-period]').forEach(function(b){
+            b.style.background = b===btn ? '#2b3139' : 'transparent';
+            b.style.color      = b===btn ? '#eaecef' : '#848e9c';
           });
-          const frame = chartEl.querySelector('[data-frame="tv"]');
-          if (frame) frame.src = buildChartUrl(sym, periodMap[currentPeriod] || 'D');
+          var frame = chartEl.querySelector('[data-frame="tv"]');
+          if(frame) frame.src = buildChartUrl(tvSym, periodMap[currentPeriod]||'D');
         });
       });
 
-      // 5秒后检测 iframe 是否加载失败
-      setTimeout(() => {
-        const frame = chartEl.querySelector('[data-frame="tv"]');
-        if (!frame) return;
-        try {
-          const doc = frame.contentDocument || frame.contentWindow.document;
-          if (doc && doc.body && doc.body.innerText.includes('Try picking another')) {
+      setTimeout(function(){
+        var frame = chartEl.querySelector('[data-frame="tv"]');
+        if(!frame) return;
+        try{
+          var doc = frame.contentDocument || frame.contentWindow.document;
+          if(doc && doc.body && doc.body.innerText.indexOf('Try picking another') >= 0){
             frame.style.display = 'none';
-            const errDiv = chartEl.querySelector('[data-chart-err]');
-            if (errDiv) errDiv.style.display = 'flex';
+            var err = chartEl.querySelector('[data-chart-err]');
+            if(err){ err.style.display = 'flex'; }
           }
-        } catch(e) {}
+        }catch(e){}
       }, 5000);
     }
 
-    buildChart(tvSym, 'D');
-
+    buildChart('D');
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
   }
@@ -729,23 +728,24 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
   function closeModal(){
     overlay.classList.remove('open');
     document.body.style.overflow = '';
-    document.querySelector('[data-cm="chart"]').innerHTML = '';
+    var chartEl = document.querySelector('[data-cm="chart"]');
+    if(chartEl) chartEl.innerHTML = '';
   }
 
-  closeEl.addEventListener('click', closeModal);
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  if(closeEl) closeEl.addEventListener('click', closeModal);
+  if(overlay) overlay.addEventListener('click', function(e){ if(e.target===overlay) closeModal(); });
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeModal(); });
 
   async function load(){
-    try {
-      let r = await fetch(API);
-      if (!r.ok) throw new Error('proxy failed');
+    try{
+      var r = await fetch(API);
+      if(!r.ok) throw new Error('proxy fail');
       coins = await r.json();
-    } catch {
-      try {
-        const r2 = await fetch(API_FALLBACK);
-        if (r2.ok) coins = await r2.json();
-      } catch {}
+    }catch(e){
+      try{
+        var r2 = await fetch(API_FB);
+        if(r2.ok) coins = await r2.json();
+      }catch(e2){}
     }
     render();
   }
