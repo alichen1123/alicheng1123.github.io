@@ -50,7 +50,7 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
       <button class="ranking-tab"        data-tab="losers" >▼ {loseT}</button>
       <button class="ranking-tab"        data-tab="volume" >⚡ {volT}</button>
     </div>
-    <div class="ranking-list" id="ranking-list">
+    <div class="ranking-list" data-cm="ranking-list">
       {[1,2,3,4,5,6,7].map(i => (
         <div class="ranking-item">
           <span class="rank-num">{i}</span>
@@ -116,40 +116,40 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 </aside>
 
 <!-- 浮层 -->
-<div class="cm-overlay" id="cm-overlay">
-  <div class="cm-box" id="cm-box">
-    <button class="cm-x" id="cm-x">✕</button>
+<div class="cm-overlay" data-cm="overlay">
+  <div class="cm-box" data-cm="box">
+    <button class="cm-x" data-cm="x">✕</button>
 
     <div class="cm-head">
-      <img class="cm-logo" id="cm-logo" src="" alt="" />
+      <img class="cm-logo" data-cm="logo" src="" alt="" />
       <div class="cm-head-text">
-        <div class="cm-fullname" id="cm-fullname"></div>
+        <div class="cm-fullname" data-cm="fullname"></div>
         <div class="cm-badges">
-          <span class="cm-badge" id="cm-sym"></span>
-          <span class="cm-badge" id="cm-mcrank"></span>
+          <span class="cm-badge" data-cm="sym"></span>
+          <span class="cm-badge" data-cm="mcrank"></span>
         </div>
       </div>
     </div>
 
     <div class="cm-price-row">
-      <span class="cm-price" id="cm-price"></span>
-      <span class="cm-chg"   id="cm-chg"></span>
+      <span class="cm-price" data-cm="price"></span>
+      <span class="cm-chg"   data-cm="chg"></span>
     </div>
 
     <div class="cm-grid">
       <div class="cm-cell">
         <span class="cm-cell-lbl" set:text={volLbl}></span>
-        <span class="cm-cell-val" id="cm-vol"></span>
+        <span class="cm-cell-val" data-cm="vol"></span>
       </div>
       <div class="cm-cell">
         <span class="cm-cell-lbl" set:text={rkLbl}></span>
-        <span class="cm-cell-val" id="cm-rank2"></span>
+        <span class="cm-cell-val" data-cm="rank2"></span>
       </div>
     </div>
 
-    <div class="cm-chart-box" id="cm-chart"></div>
+    <div class="cm-chart-box" data-cm="chart"></div>
 
-    <a class="cm-trade" id="cm-trade" href="#" target="_blank" rel="noopener sponsored">
+    <a class="cm-trade" data-cm="trade" href="#" target="_blank" rel="noopener sponsored">
       {tradeT}
     </a>
     <p class="cm-aff">{affT}</p>
@@ -564,9 +564,9 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
   let coins = [];
   let tab   = 'gainers';
 
-  const listEl  = document.getElementById('ranking-list');
-  const overlay = document.getElementById('cm-overlay');
-  const closeEl = document.getElementById('cm-x');
+  const listEl  = document.querySelector('[data-cm="ranking-list"]');
+  const overlay = document.querySelector('[data-cm="overlay"]');
+  const closeEl = document.querySelector('[data-cm="x"]');
   const BINANCE_REF = 'B2345';
 
   const SYM_MAP = {
@@ -620,7 +620,7 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
       const disp = tab === 'volume' ? fVol(c.total_volume) : (up ? '+' : '') + pct.toFixed(2) + '%';
       const fb   = c.symbol.slice(0,2).toUpperCase();
       const pctColor = up ? '#0ecb81' : '#f6465d';
-      return `<div data-id="${c.id}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer;transition:background .12s"
+      return `<div data-rid="${c.id}" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer;transition:background .12s"
                    onmouseenter="this.style.background='var(--color-bg-light)'"
                    onmouseleave="this.style.background='transparent'">
         <span style="font-size:11px;font-weight:600;color:var(--color-text-light);width:14px;text-align:right;flex-shrink:0">${i+1}</span>
@@ -637,9 +637,9 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
       </div>`;
     }).join('');
 
-    listEl.querySelectorAll('.ranking-item').forEach(el => {
+    listEl.querySelectorAll('[data-rid]').forEach(el => {
       el.addEventListener('click', () => {
-        const c = coins.find(x => x.id === el.dataset.id);
+        const c = coins.find(x => x.id === el.dataset.rid);
         if (c) openModal(c);
       });
     });
@@ -649,26 +649,26 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
     const pct = c.price_change_percentage_24h ?? 0;
     const up  = pct >= 0;
 
-    document.getElementById('cm-logo').src           = c.image;
-    document.getElementById('cm-logo').alt           = c.name;
-    document.getElementById('cm-fullname').textContent = c.name;
-    document.getElementById('cm-sym').textContent     = c.symbol.toUpperCase();
-    document.getElementById('cm-mcrank').textContent  = '#' + c.market_cap_rank;
-    document.getElementById('cm-price').textContent   = fPrice(c.current_price);
-    document.getElementById('cm-vol').textContent     = fVol(c.total_volume);
-    document.getElementById('cm-rank2').textContent   = '#' + c.market_cap_rank;
+    document.querySelector('[data-cm="logo"]').src           = c.image;
+    document.querySelector('[data-cm="logo"]').alt           = c.name;
+    document.querySelector('[data-cm="fullname"]').textContent = c.name;
+    document.querySelector('[data-cm="sym"]').textContent     = c.symbol.toUpperCase();
+    document.querySelector('[data-cm="mcrank"]').textContent  = '#' + c.market_cap_rank;
+    document.querySelector('[data-cm="price"]').textContent   = fPrice(c.current_price);
+    document.querySelector('[data-cm="vol"]').textContent     = fVol(c.total_volume);
+    document.querySelector('[data-cm="rank2"]').textContent   = '#' + c.market_cap_rank;
 
-    const chgEl = document.getElementById('cm-chg');
+    const chgEl = document.querySelector('[data-cm="chg"]');
     chgEl.textContent = (up ? '+' : '') + pct.toFixed(2) + '%';
     chgEl.className   = 'cm-chg ' + (up ? 'up' : 'down');
 
-    document.getElementById('cm-trade').href = bUrl(c.symbol);
-    document.getElementById('cm-trade').textContent =
+    document.querySelector('[data-cm="trade"]').href = bUrl(c.symbol);
+    document.querySelector('[data-cm="trade"]').textContent =
       (document.documentElement.lang === 'zh' ? '币安交易 ' : 'Trade ')
       + c.symbol.toUpperCase() + '/USDT';
 
     const tvSym = 'BINANCE:' + bSym(c.symbol) + 'USDT';
-    document.getElementById('cm-chart').innerHTML =
+    document.querySelector('[data-cm="chart"]').innerHTML =
       '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + tvSym +
       '&interval=D&theme=dark&style=3&locale=en' +
       '&hide_top_toolbar=1&hide_legend=1&hide_side_toolbar=1' +
@@ -681,7 +681,7 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
   function closeModal(){
     overlay.classList.remove('open');
     document.body.style.overflow = '';
-    document.getElementById('cm-chart').innerHTML = '';
+    document.querySelector('[data-cm="chart"]').innerHTML = '';
   }
 
   closeEl.addEventListener('click', closeModal);
