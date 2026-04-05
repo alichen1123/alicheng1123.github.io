@@ -4,6 +4,6 @@ import vercel from '@astrojs/vercel';
 export default defineConfig({
   output: 'server',
   adapter: vercel(),
-  site: 'https://biyijia.com',
+  site: 'https://51bixun.com',
   trailingSlash: 'never',
 });
