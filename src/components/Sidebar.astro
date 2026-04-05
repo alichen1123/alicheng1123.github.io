@@ -621,11 +621,11 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
       var pctColor = up ? '#0ecb81' : '#f6465d';
       var fb = c.symbol.slice(0,2).toUpperCase();
       html += '<div data-rid="'+c.id+'" style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-radius:6px;cursor:pointer"'+
-        ' onmouseenter="this.style.background='var(--color-bg-light)'"'+
-        ' onmouseleave="this.style.background='transparent'">';
+        ' onmouseenter="this.style.background=\'var(--color-bg-light)\'"'+
+        ' onmouseleave="this.style.background=\'transparent\'">';
       html += '<span style="font-size:11px;font-weight:600;color:var(--color-text-light);width:14px;text-align:right;flex-shrink:0">'+(i+1)+'</span>';
       html += '<span style="width:26px;height:26px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--color-bg-light);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--color-text-light)">';
-      html += '<img src="'+c.image+'" alt="'+c.symbol+'" style="width:26px;height:26px;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display='none';this.parentNode.textContent=''+fb+''">';
+      html += '<img src="'+c.image+'" alt="'+c.symbol+'" style="width:26px;height:26px;object-fit:cover;border-radius:50%;display:block" onerror="this.style.display=\'none\';this.parentNode.textContent=\''+fb+'\'">';
       html += '</span>';
       html += '<span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:1px">';
       html += '<span style="font-size:12px;font-weight:700;color:var(--color-text);line-height:1.2">'+c.symbol.toUpperCase()+'</span>';
