@@ -15,16 +15,23 @@ const SYM_MAP = {
 </div>
 
 <style>
+/* 白天模式 */
 .ticker-bar {
   width: 100%;
-  background: #0b0e11;
+  background: #f4f5f7;
+  border-bottom: 1px solid var(--color-border);
   height: 36px;
   overflow: hidden;
-  border-bottom: 1px solid #1e2329;
   position: relative;
   z-index: 98;
   display: flex;
   align-items: center;
+}
+
+/* 夜晚模式 */
+html[data-theme='dark'] .ticker-bar {
+  background: #0b0e11;
+  border-bottom-color: #1e2329;
 }
 
 .ticker-inner {
@@ -44,37 +51,10 @@ const SYM_MAP = {
   100% { transform: translateX(-50%); }
 }
 
-.ticker-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 20px;
-  height: 36px;
-  text-decoration: none;
-  border-right: 1px solid #1e2329;
-  transition: background .12s;
-  cursor: pointer;
-}
-.ticker-item:hover { background: #1a1f26; }
-
-.t-sym {
-  font-size: .8rem;
-  font-weight: 700;
-  color: #c9d1d9;
-  letter-spacing: .02em;
-}
-
-.t-pct {
-  font-size: .78rem;
-  font-weight: 600;
-}
-.t-pct.up   { color: #0ecb81; }
-.t-pct.down { color: #f6465d; }
-
 .ticker-placeholder {
   padding: 0 16px;
   font-size: .78rem;
-  color: #4a5568;
+  color: var(--color-text-light);
 }
 </style>
 
@@ -102,11 +82,15 @@ const SYM_MAP = {
       const color = up ? '#0ecb81' : '#f6465d';
       const sym   = c.symbol.toUpperCase();
       const pctStr= sign + pct.toFixed(2) + '%';
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      const symColor    = isDark ? '#c9d1d9' : '#1a202c';
+      const borderColor = isDark ? '#1e2329' : '#e2e8f0';
+      const hoverBg     = isDark ? '#1a1f26' : '#e8eaed';
       return `<a href="${bUrl(c.symbol)}" target="_blank" rel="noopener sponsored"
-          style="display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;text-decoration:none;border-right:1px solid #1e2329;white-space:nowrap;transition:background .12s;cursor:pointer"
-          onmouseenter="this.style.background='#1a1f26'"
+          style="display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;text-decoration:none;border-right:1px solid ${borderColor};white-space:nowrap;transition:background .12s;cursor:pointer"
+          onmouseenter="this.style.background='${hoverBg}'"
           onmouseleave="this.style.background='transparent'">
-        <span style="font-size:12px;font-weight:700;color:#c9d1d9;letter-spacing:.02em">${sym}</span>
+        <span style="font-size:12px;font-weight:700;color:${symColor};letter-spacing:.02em">${sym}</span>
         <span style="font-size:12px;font-weight:600;color:${color}">${pctStr}</span>
       </a>`;
     }).join('');
