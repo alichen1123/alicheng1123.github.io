@@ -96,12 +96,18 @@ const SYM_MAP = {
     const top  = coins.slice(0, 30);
     const rows = [...top, ...top]; // 双份无缝循环
     inner.innerHTML = rows.map(c => {
-      const pct = c.price_change_percentage_24h ?? 0;
-      const up  = pct >= 0;
-      const str = (up ? '+' : '') + pct.toFixed(2) + '%';
-      return `<a class="ticker-item" href="${bUrl(c.symbol)}" target="_blank" rel="noopener sponsored">
-        <span class="t-sym">${c.symbol.toUpperCase()}</span>
-        <span class="t-pct ${up ? 'up' : 'down'}">${str}</span>
+      const pct   = c.price_change_percentage_24h ?? 0;
+      const up    = pct >= 0;
+      const sign  = up ? '+' : '';
+      const color = up ? '#0ecb81' : '#f6465d';
+      const sym   = c.symbol.toUpperCase();
+      const pctStr= sign + pct.toFixed(2) + '%';
+      return `<a href="${bUrl(c.symbol)}" target="_blank" rel="noopener sponsored"
+          style="display:inline-flex;align-items:center;gap:6px;padding:0 18px;height:36px;text-decoration:none;border-right:1px solid #1e2329;white-space:nowrap;transition:background .12s;cursor:pointer"
+          onmouseenter="this.style.background='#1a1f26'"
+          onmouseleave="this.style.background='transparent'">
+        <span style="font-size:12px;font-weight:700;color:#c9d1d9;letter-spacing:.02em">${sym}</span>
+        <span style="font-size:12px;font-weight:600;color:${color}">${pctStr}</span>
       </a>`;
     }).join('');
 
