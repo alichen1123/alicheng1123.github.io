@@ -519,13 +519,13 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 .cm-chart-box {
   background: #1e2329;
   border-radius: 8px;
-  height: 168px;
+  height: 240px;
   overflow: hidden;
   margin-bottom: 14px;
 }
 .cm-chart-box iframe {
   width: 100%;
-  height: 160px;
+  height: 240px;
   border: none;
   display: block;
 }
@@ -669,42 +669,58 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 
     const tvSym = 'BINANCE:' + bSym(c.symbol) + 'USDT';
     const chartEl = document.querySelector('[data-cm="chart"]');
-
-    // 时间段选择器 + TradingView advanced chart
-    chartEl.innerHTML = `
-      <div style="display:flex;gap:4px;padding:8px 10px 0;background:#1e2329">
-        ${['1D','1W','1M','3M'].map(p =>
-          `<button data-period="${p}" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;background:${p==='1D'?'#2b3139':'transparent'};color:${p==='1D'?'#eaecef':'#848e9c'};transition:all .15s"
-            onmouseenter="if(this.dataset.period!==currentPeriod)this.style.color='#eaecef'"
-            onmouseleave="if(this.dataset.period!==currentPeriod)this.style.color='#848e9c'"
-          >${p}</button>`
-        ).join('')}
-      </div>
-      <iframe id="tv-frame" src="https://s.tradingview.com/widgetembed/?frameElementId=tv-frame&symbol=${tvSym}&interval=D&theme=dark&style=1&locale=en&hide_top_toolbar=1&hide_legend=0&hide_side_toolbar=1&allow_symbol_change=0&save_image=0&withdateranges=0&studies=[]&utm_source=biyijia.com"
-        frameborder="0" allowtransparency="1"
-        style="width:100%;height:128px;display:block;border:none"></iframe>`;
-
     let currentPeriod = '1D';
     const periodMap = { '1D':'D', '1W':'W', '1M':'M', '3M':'3M' };
 
-    chartEl.querySelectorAll('button[data-period]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentPeriod = btn.dataset.period;
-        chartEl.querySelectorAll('button[data-period]').forEach(b => {
-          b.style.background = b === btn ? '#2b3139' : 'transparent';
-          b.style.color      = b === btn ? '#eaecef' : '#848e9c';
+    function buildChartUrl(sym, interval) {
+      return 'https://s.tradingview.com/widgetembed/?frameElementId=tv-iframe&symbol=' + sym +
+        '&interval=' + interval + '&theme=dark&style=1&locale=en' +
+        '&hide_top_toolbar=1&hide_legend=0&hide_side_toolbar=1' +
+        '&allow_symbol_change=0&save_image=0&withdateranges=0&utm_source=biyijia.com';
+    }
+
+    function buildChart(sym, interval) {
+      chartEl.innerHTML =
+        '<div style="display:flex;gap:4px;padding:8px 10px 0;background:#1e2329">' +
+        ['1D','1W','1M','3M'].map(p =>
+          '<button data-period="' + p + '" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;' +
+          'background:' + (p === currentPeriod ? '#2b3139' : 'transparent') + ';' +
+          'color:' + (p === currentPeriod ? '#eaecef' : '#848e9c') + ';transition:all .15s">' + p + '</button>'
+        ).join('') +
+        '</div>' +
+        '<iframe data-frame="tv" src="' + buildChartUrl(sym, interval) + '" frameborder="0" allowtransparency="1" ' +
+        'style="width:100%;height:200px;display:block;border:none" ' +
+        'onerror="this.parentNode.innerHTML='<div style=&quot;height:200px;display:flex;align-items:center;justify-content:center;color:#848e9c;font-size:12px&quot;>暂无图表数据</div>'"></iframe>';
+
+      chartEl.querySelectorAll('button[data-period]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentPeriod = btn.dataset.period;
+          chartEl.querySelectorAll('button[data-period]').forEach(b => {
+            b.style.background = b === btn ? '#2b3139' : 'transparent';
+            b.style.color      = b === btn ? '#eaecef' : '#848e9c';
+          });
+          const frame = chartEl.querySelector('[data-frame="tv"]');
+          if (frame) frame.src = buildChartUrl(sym, periodMap[currentPeriod] || 'D');
         });
-        const interval = periodMap[currentPeriod] || 'D';
-        const frame = chartEl.querySelector('#tv-frame');
-        if (frame) {
-          frame.src = 'https://s.tradingview.com/widgetembed/?frameElementId=tv-frame&symbol=' + tvSym +
-            '&interval=' + interval + '&theme=dark&style=1&locale=en' +
-            '&hide_top_toolbar=1&hide_legend=0&hide_side_toolbar=1' +
-            '&allow_symbol_change=0&save_image=0&withdateranges=0' +
-            '&utm_source=biyijia.com';
-        }
       });
-    });
+
+      // 5秒后检测 iframe 是否加载失败（TradingView 找不到交易对时不触发 onerror）
+      setTimeout(() => {
+        const frame = chartEl.querySelector('[data-frame="tv"]');
+        if (!frame) return;
+        try {
+          const doc = frame.contentDocument || frame.contentWindow.document;
+          if (doc && doc.body && doc.body.innerText.includes('Try picking another')) {
+            chartEl.querySelector('[data-frame="tv"]').outerHTML =
+              '<div style="height:200px;display:flex;align-items:center;justify-content:center;color:#848e9c;font-size:12px">暂无图表数据</div>';
+          }
+        } catch(e) {
+          // 跨域无法读取内容，说明正常加载中，不处理
+        }
+      }, 5000);
+    }
+
+    buildChart(tvSym, 'D');
 
     overlay.classList.add('open');
     document.body.style.overflow = 'hidden';
