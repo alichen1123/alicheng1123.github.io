@@ -679,20 +679,43 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
     var periodMap = {'1D':'D','1W':'W','1M':'M','3M':'3M'};
 
     function buildChart(interval){
-      var tabsHtml = '';
       var periods = ['1D','1W','1M','3M'];
-      for(var pi=0;pi<periods.length;pi++){
-        var p = periods[pi];
-        var active = p===currentPeriod;
-        tabsHtml += '<button data-period="'+p+'" style="padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;'+
-          'background:'+(active?'#2b3139':'transparent')+';'+
-          'color:'+(active?'#eaecef':'#848e9c')+';transition:all .15s">'+p+'</button>';
-      }
-      chartEl.innerHTML =
-        '<div style="display:flex;gap:4px;padding:8px 10px 0;background:#1e2329">'+tabsHtml+'</div>'+
-        '<iframe data-frame="tv" src="'+buildChartUrl(tvSym,interval)+'" frameborder="0" allowtransparency="1" '+
-        'style="width:100%;height:200px;display:block;border:none"></iframe>'+
-        '<div data-chart-err style="display:none;height:200px;align-items:center;justify-content:center;color:#848e9c;font-size:12px;text-align:center">暂无图表数据</div>';
+      var wrap = document.createElement('div');
+
+      var tabBar = document.createElement('div');
+      tabBar.setAttribute('style', 'display:flex;gap:4px;padding:8px 10px 0;background:#1e2329');
+
+      periods.forEach(function(p){
+        var btn = document.createElement('button');
+        btn.dataset.period = p;
+        btn.textContent = p;
+        var active = p === currentPeriod;
+        btn.setAttribute('style',
+          'padding:3px 10px;font-size:11px;font-weight:600;border-radius:4px;border:none;cursor:pointer;' +
+          'background:' + (active ? '#2b3139' : 'transparent') + ';' +
+          'color:' + (active ? '#eaecef' : '#848e9c') + ';transition:all .15s'
+        );
+        tabBar.appendChild(btn);
+      });
+
+      var iframe = document.createElement('iframe');
+      iframe.dataset.frame = 'tv';
+      iframe.setAttribute('frameborder', '0');
+      iframe.setAttribute('allowtransparency', '1');
+      iframe.setAttribute('style', 'width:100%;height:200px;display:block;border:none');
+      iframe.src = buildChartUrl(tvSym, interval);
+
+      var errDiv = document.createElement('div');
+      errDiv.dataset.chartErr = '1';
+      errDiv.textContent = '暂无图表数据';
+      errDiv.setAttribute('style', 'display:none;height:200px;align-items:center;justify-content:center;color:#848e9c;font-size:12px;text-align:center');
+
+      wrap.appendChild(tabBar);
+      wrap.appendChild(iframe);
+      wrap.appendChild(errDiv);
+
+      chartEl.innerHTML = '';
+      chartEl.appendChild(wrap);
 
       chartEl.querySelectorAll('button[data-period]').forEach(function(btn){
         btn.addEventListener('click', function(){
@@ -713,7 +736,7 @@ const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
           var doc = frame.contentDocument || frame.contentWindow.document;
           if(doc && doc.body && doc.body.innerText.indexOf('Try picking another') >= 0){
             frame.style.display = 'none';
-            var err = chartEl.querySelector('[data-chart-err]');
+            var err = chartEl.querySelector('[data-chart-err="1"]');
             if(err){ err.style.display = 'flex'; }
           }
         }catch(e){}
