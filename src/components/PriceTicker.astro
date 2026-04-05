@@ -1,181 +1,127 @@
 ---
 /**
- * 价格跑马灯组件
- * 放在导航栏正下方，显示实时币价走势
- * 悬停暂停 + 点击跳转币安对应交易对
+ * 价格跑马灯 — 纯文字风格，悬停暂停，点击跳转币安
  */
 const BINANCE_REF = 'B2345';
-
-// 少数币种在币安的交易对符号和 CoinGecko symbol 不一致，单独映射
-// 大多数币种直接用 symbol.toUpperCase() 就对
-const SYMBOL_MAP: Record<string, string> = {
-  iota: 'IOTA',
-  miota: 'IOTA',
-  matic: 'POL',      // Polygon 已更名
-  hbar: 'HBAR',
-  kava: 'KAVA',
-  celo: 'CELO',
-  ont: 'ONT',
-  qtum: 'QTUM',
-  waves: 'WAVES',
-  nano: 'XNO',
-  xno: 'XNO',
-  theta: 'THETA',
+const SYM_MAP = {
+  matic: 'POL', iota: 'IOTA', miota: 'IOTA', nano: 'XNO', xno: 'XNO',
 };
 ---
 
-<div class="ticker-wrap" id="ticker-wrap">
-  <div class="ticker-track" id="ticker-track">
-    <!-- JS 动态填充 -->
-    <span class="ticker-loading">Loading market data...</span>
+<div class="ticker-bar" id="ticker-bar">
+  <div class="ticker-inner" id="ticker-inner">
+    <span class="ticker-placeholder">Loading...</span>
   </div>
 </div>
 
 <style>
-  .ticker-wrap {
-    width: 100%;
-    background: #0b0e11;
-    overflow: hidden;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #1e2329;
-    position: relative;
-    z-index: 99;
-  }
+.ticker-bar {
+  width: 100%;
+  background: #0b0e11;
+  height: 36px;
+  overflow: hidden;
+  border-bottom: 1px solid #1e2329;
+  position: relative;
+  z-index: 98;
+  display: flex;
+  align-items: center;
+}
 
-  .ticker-track {
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
-    animation: ticker-scroll 60s linear infinite;
-    will-change: transform;
-    gap: 0;
-  }
+.ticker-inner {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+  animation: ticker-move 80s linear infinite;
+  will-change: transform;
+}
 
-  .ticker-wrap:hover .ticker-track {
-    animation-play-state: paused;
-  }
+.ticker-bar:hover .ticker-inner {
+  animation-play-state: paused;
+}
 
-  @keyframes ticker-scroll {
-    0%   { transform: translateX(0); }
-    100% { transform: translateX(-50%); }
-  }
+@keyframes ticker-move {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
 
-  .ticker-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 0 22px;
-    height: 40px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #eaecef;
-    text-decoration: none;
-    border-right: 1px solid #1e2329;
-    transition: background 0.15s;
-    cursor: pointer;
-    white-space: nowrap;
-  }
+.ticker-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 20px;
+  height: 36px;
+  text-decoration: none;
+  border-right: 1px solid #1e2329;
+  transition: background .12s;
+  cursor: pointer;
+}
+.ticker-item:hover { background: #1a1f26; }
 
-  .ticker-item:hover {
-    background: #1e2329;
-    text-decoration: none;
-  }
+.t-sym {
+  font-size: .8rem;
+  font-weight: 700;
+  color: #c9d1d9;
+  letter-spacing: .02em;
+}
 
-  .ticker-symbol {
-    color: #eaecef;
-    font-weight: 700;
-    font-size: 0.88rem;
-  }
+.t-pct {
+  font-size: .78rem;
+  font-weight: 600;
+}
+.t-pct.up   { color: #0ecb81; }
+.t-pct.down { color: #f6465d; }
 
-  .ticker-price {
-    color: #848e9c;
-    font-size: 0.82rem;
-    font-weight: 400;
-  }
-
-  .ticker-change {
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  .ticker-change.up   { color: #0ecb81; }
-  .ticker-change.down { color: #f6465d; }
-
-  .ticker-loading {
-    padding: 0 20px;
-    font-size: 0.82rem;
-    color: #848e9c;
-  }
+.ticker-placeholder {
+  padding: 0 16px;
+  font-size: .78rem;
+  color: #4a5568;
+}
 </style>
 
-<script define:vars={{ BINANCE_REF, SYMBOL_MAP }}>
-(function () {
-  const track = document.getElementById('ticker-track');
-  if (!track) return;
+<script define:vars={{ BINANCE_REF, SYM_MAP }}>
+(function(){
+  const inner = document.getElementById('ticker-inner');
+  if (!inner) return;
 
-  function getBinanceSymbol(coinSymbol) {
-    const lower = coinSymbol.toLowerCase();
-    return SYMBOL_MAP[lower] || coinSymbol.toUpperCase();
+  function bSym(s){ return SYM_MAP[s.toLowerCase()] || s.toUpperCase(); }
+  function bUrl(s){
+    const sym = bSym(s);
+    const st  = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
+    return st.includes(sym)
+      ? `https://www.binance.com/markets/overview?ref=${BINANCE_REF}`
+      : `https://www.binance.com/trade/${sym}_USDT?ref=${BINANCE_REF}`;
   }
 
-  function getBinanceUrl(coinSymbol) {
-    const sym = getBinanceSymbol(coinSymbol);
-    // 稳定币本身不需要 /USDT 对
-    const stables = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
-    if (stables.includes(sym)) {
-      return `https://www.binance.com/markets/overview?ref=${BINANCE_REF}`;
-    }
-    return `https://www.binance.com/trade/${sym}_USDT?ref=${BINANCE_REF}`;
-  }
-
-  function formatPrice(price) {
-    if (price >= 1000) return price.toLocaleString('en-US', { maximumFractionDigits: 0 });
-    if (price >= 1)    return price.toFixed(2);
-    if (price >= 0.01) return price.toFixed(4);
-    return price.toFixed(6);
-  }
-
-  function renderTicker(coins) {
-    // 取前 30 个币，双份拼接实现无缝循环
-    const top = coins.slice(0, 30);
-    const items = [...top, ...top].map((coin) => {
-      const pct = coin.price_change_percentage_24h ?? 0;
-      const isUp = pct >= 0;
-      const sign = isUp ? '+' : '';
-      const url = getBinanceUrl(coin.symbol);
-      return `<a class="ticker-item" href="${url}" target="_blank" rel="noopener sponsored">
-        <span class="ticker-symbol">${coin.symbol.toUpperCase()}</span>
-        <span class="ticker-price">$${formatPrice(coin.current_price)}</span>
-        <span class="ticker-change ${isUp ? 'up' : 'down'}">${sign}${pct.toFixed(2)}%</span>
+  function render(coins){
+    const top  = coins.slice(0, 30);
+    const rows = [...top, ...top]; // 双份无缝循环
+    inner.innerHTML = rows.map(c => {
+      const pct = c.price_change_percentage_24h ?? 0;
+      const up  = pct >= 0;
+      const str = (up ? '+' : '') + pct.toFixed(2) + '%';
+      return `<a class="ticker-item" href="${bUrl(c.symbol)}" target="_blank" rel="noopener sponsored">
+        <span class="t-sym">${c.symbol.toUpperCase()}</span>
+        <span class="t-pct ${up ? 'up' : 'down'}">${str}</span>
       </a>`;
     }).join('');
 
-    track.innerHTML = items;
-
-    // 根据内容宽度动态调整滚动速度（每 px 约 0.015s）
+    // 动态调速
     requestAnimationFrame(() => {
-      const totalWidth = track.scrollWidth / 2;
-      const duration = Math.max(30, totalWidth * 0.015);
-      track.style.animationDuration = `${duration}s`;
+      const w = inner.scrollWidth / 2;
+      inner.style.animationDuration = Math.max(30, w * 0.014) + 's';
     });
   }
 
-  async function fetchAndRender() {
-    try {
-      const res = await fetch('/api/market');
-      if (!res.ok) return;
-      const coins = await res.json();
-      if (Array.isArray(coins) && coins.length > 0) {
-        renderTicker(coins);
-      }
-    } catch {
-      // 静默失败
-    }
+  async function load(){
+    try{
+      const r = await fetch('/api/market');
+      if (!r.ok) return;
+      const data = await r.json();
+      if (Array.isArray(data) && data.length) render(data);
+    }catch{}
   }
 
-  fetchAndRender();
-  setInterval(fetchAndRender, 60000);
+  load();
+  setInterval(load, 60000);
 })();
 </script>
