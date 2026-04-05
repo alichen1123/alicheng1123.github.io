@@ -1,7 +1,4 @@
 ---
-/**
- * 侧边栏 — 行情排行(点击弹详情) + 标签云 + 最近文章 + CTA
- */
 import type { GhostTagWithCount, GhostPost } from '../lib/ghost';
 import { UI_TEXT, type SupportedLang } from '../lib/env';
 import TableOfContents from './TableOfContents.astro';
@@ -31,14 +28,14 @@ function relativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric' });
 }
 
-const rankT  = lang === 'zh' ? '行情排行'  : lang === 'es' ? 'Ranking'  : 'Market Ranking';
-const gainT  = lang === 'zh' ? '涨幅'      : lang === 'es' ? 'Subidas'  : 'Gainers';
-const loseT  = lang === 'zh' ? '跌幅'      : lang === 'es' ? 'Bajadas'  : 'Losers';
-const volT   = lang === 'zh' ? '成交'      : lang === 'es' ? 'Volumen'  : 'Volume';
+const rankT  = lang === 'zh' ? '行情排行'  : lang === 'es' ? 'Ranking'   : 'Market Ranking';
+const gainT  = lang === 'zh' ? '涨幅'      : lang === 'es' ? 'Subidas'   : 'Gainers';
+const loseT  = lang === 'zh' ? '跌幅'      : lang === 'es' ? 'Bajadas'   : 'Losers';
+const volT   = lang === 'zh' ? '成交'      : lang === 'es' ? 'Volumen'   : 'Volume';
 const tradeT = lang === 'zh' ? '币安交易'  : lang === 'es' ? 'En Binance': 'Trade on Binance';
 const affT   = lang === 'zh' ? '含推广链接 — 币安 ref. B2345' : 'Affiliate link — Binance ref. B2345';
-const volLbl = lang === 'zh' ? '24h成交额' : '24h Volume';
-const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
+const volLbl = lang === 'zh' ? '24h 成交额' : '24h Volume';
+const rkLbl  = lang === 'zh' ? '市值排名'   : 'Market Cap Rank';
 ---
 
 <aside class="sidebar">
@@ -57,12 +54,12 @@ const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
       {[1,2,3,4,5,6,7].map(i => (
         <div class="ranking-item">
           <span class="rank-num">{i}</span>
-          <span class="coin-icon-wrap sk-anim"></span>
+          <span class="coin-avatar sk"></span>
           <span class="coin-meta">
-            <span class="sk-line" style="width:38px;height:13px;margin-bottom:4px;display:block"></span>
-            <span class="sk-line" style="width:60px;height:11px;display:block"></span>
+            <span class="sk sk-sym"></span>
+            <span class="sk sk-name"></span>
           </span>
-          <span class="sk-line" style="width:52px;height:13px;margin-left:auto;display:block"></span>
+          <span class="sk sk-pct"></span>
         </div>
       ))}
     </div>
@@ -90,7 +87,9 @@ const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
       <div class="recent-list">
         {recentPosts.map(post => (
           <a href={`/${lang}/${post.slug}`} class="recent-item">
-            {post.feature_image && <img src={post.feature_image} alt={post.title} loading="lazy" class="recent-thumb" />}
+            {post.feature_image && (
+              <img src={post.feature_image} alt={post.title} loading="lazy" class="recent-thumb" />
+            )}
             <div class="recent-info">
               <span class="recent-title">{post.title}</span>
               <span class="recent-time">{relativeTime(post.published_at)}</span>
@@ -116,238 +115,446 @@ const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
   <Newsletter lang={lang} variant="sidebar" />
 </aside>
 
-<!-- 币种详情浮层 -->
+<!-- 浮层 -->
 <div class="cm-overlay" id="cm-overlay">
-  <div class="cm-modal" id="cm-modal">
-    <button class="cm-close" id="cm-close">✕</button>
-    <div class="cm-header">
-      <img class="cm-icon" id="cm-icon" src="" alt="" />
-      <div>
-        <div class="cm-name" id="cm-name"></div>
-        <div class="cm-tags">
-          <span class="cm-badge" id="cm-symbol"></span>
-          <span class="cm-badge" id="cm-rank"></span>
+  <div class="cm-box" id="cm-box">
+    <button class="cm-x" id="cm-x">✕</button>
+
+    <div class="cm-head">
+      <img class="cm-logo" id="cm-logo" src="" alt="" />
+      <div class="cm-head-text">
+        <div class="cm-fullname" id="cm-fullname"></div>
+        <div class="cm-badges">
+          <span class="cm-badge" id="cm-sym"></span>
+          <span class="cm-badge" id="cm-mcrank"></span>
         </div>
       </div>
     </div>
+
     <div class="cm-price-row">
       <span class="cm-price" id="cm-price"></span>
-      <span class="cm-pct"   id="cm-pct"></span>
+      <span class="cm-chg"   id="cm-chg"></span>
     </div>
-    <div class="cm-stats">
-      <div class="cm-stat"><span class="cm-stat-lbl" set:text={volLbl} /><span class="cm-stat-val" id="cm-vol"></span></div>
-      <div class="cm-stat"><span class="cm-stat-lbl" set:text={rankLbl}/><span class="cm-stat-val" id="cm-mcrank"></span></div>
+
+    <div class="cm-grid">
+      <div class="cm-cell">
+        <span class="cm-cell-lbl" set:text={volLbl}></span>
+        <span class="cm-cell-val" id="cm-vol"></span>
+      </div>
+      <div class="cm-cell">
+        <span class="cm-cell-lbl" set:text={rkLbl}></span>
+        <span class="cm-cell-val" id="cm-rank2"></span>
+      </div>
     </div>
-    <div class="cm-chart" id="cm-chart"></div>
-    <a class="cm-trade-btn" id="cm-trade-btn" href="#" target="_blank" rel="noopener sponsored">{tradeT}</a>
-    <div class="cm-disclaimer">{affT}</div>
+
+    <div class="cm-chart-box" id="cm-chart"></div>
+
+    <a class="cm-trade" id="cm-trade" href="#" target="_blank" rel="noopener sponsored">
+      {tradeT}
+    </a>
+    <p class="cm-aff">{affT}</p>
   </div>
 </div>
 
 <style>
+/* ── 基础 ── */
 .sidebar { display:flex; flex-direction:column; gap:20px; }
 
 .sidebar-card {
-  background:var(--color-bg);
-  border:1px solid var(--color-border);
-  border-radius:var(--radius);
-  padding:16px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px;
 }
 
 .sidebar-title {
-  font-size:.95rem; font-weight:700;
-  margin-bottom:12px; padding-bottom:8px;
-  border-bottom:2px solid var(--color-primary);
+  font-size: .9rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--color-primary);
+  color: var(--color-text);
 }
 
 /* ── 排行榜 ── */
-.ranking-card { padding:14px; }
+.ranking-card { padding: 14px; }
 
 .ranking-tabs {
-  display:flex; gap:3px;
-  background:var(--color-bg-light);
-  border-radius:6px; padding:3px;
-  margin-bottom:10px;
+  display: flex;
+  gap: 3px;
+  background: var(--color-bg-light);
+  border-radius: 6px;
+  padding: 3px;
+  margin-bottom: 8px;
 }
 
 .ranking-tab {
-  flex:1; padding:5px 0;
-  font-size:.73rem; font-weight:600;
-  color:var(--color-text-light);
-  background:none; border:none;
-  border-radius:4px; cursor:pointer;
-  transition:all .15s;
+  flex: 1;
+  padding: 4px 0;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
 }
 .ranking-tab.active {
-  background:var(--color-bg);
-  color:var(--color-text);
-  box-shadow:0 1px 3px rgba(0,0,0,.1);
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
 }
 
-.ranking-list { display:flex; flex-direction:column; }
+.ranking-list { display: flex; flex-direction: column; }
 
 .ranking-item {
-  display:flex; align-items:center; gap:9px;
-  padding:7px 6px; border-radius:6px;
-  cursor:pointer; transition:background .12s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .12s;
 }
-.ranking-item:hover { background:var(--color-bg-light); }
+.ranking-item:hover { background: var(--color-bg-light); }
 
 .rank-num {
-  font-size:.7rem; font-weight:600;
-  color:var(--color-text-light);
-  width:14px; text-align:center; flex-shrink:0;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--color-text-light);
+  width: 14px;
+  text-align: right;
+  flex-shrink: 0;
 }
 
-.coin-icon-wrap {
-  width:32px; height:32px; border-radius:50%;
-  overflow:hidden; flex-shrink:0;
-  background:var(--color-bg-light);
-  display:flex; align-items:center; justify-content:center;
-  font-size:.6rem; font-weight:700; color:var(--color-text-light);
+/* 图标：小而精，26px */
+.coin-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--color-bg-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: .6rem;
+  font-weight: 700;
+  color: var(--color-text-light);
 }
-.coin-icon-wrap img { width:32px; height:32px; object-fit:cover; border-radius:50%; }
+.coin-avatar img {
+  width: 26px;
+  height: 26px;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
 
-.coin-meta { display:flex; flex-direction:column; min-width:0; flex:1; }
-.coin-sym  { font-size:.84rem; font-weight:700; color:var(--color-text); line-height:1.2; }
-.coin-full { font-size:.68rem; color:var(--color-text-light); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* 文字区域 */
+.coin-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
 
-.coin-pct  { font-size:.82rem; font-weight:700; margin-left:auto; flex-shrink:0; }
-.coin-pct.up   { color:#0ecb81; }
-.coin-pct.down { color:#f6465d; }
+.coin-sym {
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.coin-name {
+  font-size: .68rem;
+  color: var(--color-text-light);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 涨跌幅 */
+.coin-pct {
+  font-size: .78rem;
+  font-weight: 700;
+  margin-left: auto;
+  flex-shrink: 0;
+  min-width: 52px;
+  text-align: right;
+}
+.coin-pct.up   { color: #0ecb81; }
+.coin-pct.down { color: #f6465d; }
 
 /* 骨架屏 */
-.sk-anim,.sk-line {
-  background:var(--color-border);
-  border-radius:4px;
-  animation:sk-pulse 1.4s ease-in-out infinite;
+.sk {
+  background: var(--color-border);
+  border-radius: 4px;
+  animation: skpulse 1.4s ease-in-out infinite;
 }
-.sk-anim { border-radius:50%; }
-@keyframes sk-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+.coin-avatar.sk { border-radius: 50%; }
+.sk-sym  { display: block; width: 34px; height: 12px; }
+.sk-name { display: block; width: 56px; height: 10px; margin-top: 3px; }
+.sk-pct  { display: block; width: 44px; height: 12px; margin-left: auto; flex-shrink: 0; }
+
+@keyframes skpulse {
+  0%,100% { opacity: 1; }
+  50%      { opacity: .35; }
+}
 
 /* ── 标签云 ── */
-.tag-cloud { display:flex; flex-wrap:wrap; gap:6px; }
+.tag-cloud { display: flex; flex-wrap: wrap; gap: 6px; }
 
 .sidebar-tag {
-  display:inline-flex; align-items:center; gap:4px;
-  padding:4px 10px; font-size:.8rem;
-  color:var(--color-text) !important;
-  background:var(--color-bg-light);
-  border:1px solid var(--color-border);
-  border-radius:4px; text-decoration:none !important;
-  transition:all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  font-size: .8rem;
+  color: var(--color-text) !important;
+  background: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  text-decoration: none !important;
+  transition: all .15s;
 }
-.sidebar-tag:hover { border-color:var(--color-primary); }
-.sidebar-tag.active { background:var(--color-primary); border-color:var(--color-primary); font-weight:600; }
-
+.sidebar-tag:hover { border-color: var(--color-primary); }
+.sidebar-tag.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
 .tag-count {
-  font-size:.7rem; color:var(--color-text-light);
-  background:var(--color-bg); border-radius:3px;
-  padding:0 4px; min-width:18px; text-align:center;
+  font-size: .7rem;
+  color: var(--color-text-light);
+  background: var(--color-bg);
+  border-radius: 3px;
+  padding: 0 4px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1.4;
 }
-.sidebar-tag.active .tag-count { background:rgba(255,255,255,.7); color:var(--color-text); }
+.sidebar-tag.active .tag-count {
+  background: rgba(255,255,255,.7);
+  color: var(--color-text);
+}
 
 /* ── 最近文章 ── */
-.recent-list { display:flex; flex-direction:column; }
+.recent-list { display: flex; flex-direction: column; }
 
 .recent-item {
-  display:flex; gap:10px; padding:10px 0;
-  text-decoration:none !important; color:var(--color-text) !important;
-  border-bottom:1px solid var(--color-border);
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  text-decoration: none !important;
+  color: var(--color-text) !important;
+  border-bottom: 1px solid var(--color-border);
 }
-.recent-item:last-child { border-bottom:none; }
-.recent-item:hover .recent-title { color:var(--color-primary-dark); }
+.recent-item:last-child { border-bottom: none; }
+.recent-item:hover .recent-title { color: var(--color-primary-dark); }
 
-.recent-thumb { width:60px; height:45px; object-fit:cover; border-radius:4px; flex-shrink:0; }
-.recent-info  { display:flex; flex-direction:column; justify-content:center; min-width:0; }
+.recent-thumb { width: 60px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0; }
+.recent-info  { display: flex; flex-direction: column; justify-content: center; min-width: 0; }
+
 .recent-title {
-  font-size:.82rem; font-weight:500; line-height:1.35;
-  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
-  transition:color .12s;
+  font-size: .82rem;
+  font-weight: 500;
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  transition: color .12s;
 }
-.recent-time  { font-size:.72rem; color:var(--color-text-light); margin-top:2px; }
+.recent-time { font-size: .72rem; color: var(--color-text-light); margin-top: 2px; }
 
 .sidebar-more {
-  display:block; text-align:center; margin-top:10px; padding:8px;
-  font-size:.82rem; color:var(--color-link) !important;
-  text-decoration:none !important; background:var(--color-bg-light); border-radius:4px;
+  display: block;
+  text-align: center;
+  margin-top: 10px;
+  padding: 8px;
+  font-size: .82rem;
+  color: var(--color-link) !important;
+  text-decoration: none !important;
+  background: var(--color-bg-light);
+  border-radius: 4px;
 }
 
 /* ── CTA ── */
-.sidebar-cta { background:linear-gradient(135deg,#1a1a2e,#16213e); color:#fff; text-align:center; border:none; }
-.sidebar-cta strong { font-size:1rem; display:block; margin-bottom:6px; }
-.sidebar-cta p { font-size:.8rem; opacity:.85; margin-bottom:12px; line-height:1.4; }
-.sidebar-cta-btn {
-  display:block; background:var(--color-primary); color:#1a1a2e !important;
-  padding:10px 16px; border-radius:6px; font-weight:700; font-size:.9rem;
-  text-decoration:none !important; transition:background .15s;
+.sidebar-cta {
+  background: linear-gradient(135deg, #1a1a2e, #16213e);
+  color: #fff;
+  text-align: center;
+  border: none;
 }
-.sidebar-cta-btn:hover { background:var(--color-primary-dark); }
+.sidebar-cta strong { font-size: 1rem; display: block; margin-bottom: 6px; }
+.sidebar-cta p { font-size: .8rem; opacity: .85; margin-bottom: 12px; line-height: 1.4; }
+.sidebar-cta-btn {
+  display: block;
+  background: var(--color-primary);
+  color: #1a1a2e !important;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: .9rem;
+  text-decoration: none !important;
+  transition: background .15s;
+}
+.sidebar-cta-btn:hover { background: var(--color-primary-dark); }
 
 /* ── 浮层 ── */
 .cm-overlay {
-  display:none; position:fixed; inset:0; z-index:999;
-  background:rgba(0,0,0,.65);
-  align-items:center; justify-content:center; padding:20px;
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,.6);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
-.cm-overlay.open { display:flex; }
+.cm-overlay.open { display: flex; }
 
-.cm-modal {
-  position:relative; width:100%; max-width:360px;
-  background:#12161c; border-radius:16px; padding:20px;
-  box-shadow:0 20px 60px rgba(0,0,0,.5); color:#eaecef;
-  animation:cm-in .2s ease;
+.cm-box {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  background: #12161c;
+  border-radius: 16px;
+  padding: 20px;
+  color: #eaecef;
+  animation: cmin .18s ease;
 }
-@keyframes cm-in { from{transform:scale(.94);opacity:0} to{transform:scale(1);opacity:1} }
+@keyframes cmin { from{transform:scale(.95);opacity:0} to{transform:scale(1);opacity:1} }
 
-.cm-close {
-  position:absolute; top:14px; right:14px;
-  background:#1e2329; border:none; color:#848e9c;
-  width:28px; height:28px; border-radius:50%; font-size:.8rem;
-  cursor:pointer; display:flex; align-items:center; justify-content:center;
-  transition:background .15s;
+.cm-x {
+  position: absolute;
+  top: 14px; right: 14px;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: #1e2329;
+  border: none;
+  color: #848e9c;
+  font-size: .75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .15s;
 }
-.cm-close:hover { background:#2b3139; color:#eaecef; }
+.cm-x:hover { background: #2b3139; color: #eaecef; }
 
-.cm-header { display:flex; align-items:center; gap:12px; margin-bottom:14px; }
-.cm-icon   { width:44px; height:44px; border-radius:50%; flex-shrink:0; }
-.cm-name   { font-size:1rem; font-weight:700; }
-
-.cm-tags { display:flex; gap:6px; margin-top:4px; }
+/* 头部 */
+.cm-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.cm-logo {
+  width: 42px; height: 42px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #1e2329;
+}
+.cm-fullname {
+  font-size: .95rem;
+  font-weight: 700;
+  color: #eaecef;
+  margin-bottom: 5px;
+}
+.cm-badges { display: flex; gap: 6px; }
 .cm-badge {
-  font-size:.72rem; font-weight:600; color:#848e9c;
-  background:#1e2329; padding:2px 8px; border-radius:4px;
+  font-size: .7rem;
+  font-weight: 500;
+  color: #848e9c;
+  background: #1e2329;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
-.cm-price-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
-.cm-price { font-size:1.6rem; font-weight:800; }
-.cm-pct   { font-size:.9rem; font-weight:700; padding:3px 8px; border-radius:6px; }
-.cm-pct.up   { background:rgba(14,203,129,.15); color:#0ecb81; }
-.cm-pct.down { background:rgba(246,70,93,.15);  color:#f6465d; }
-
-.cm-stats { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
-.cm-stat  { background:#1e2329; border-radius:8px; padding:8px 10px; }
-.cm-stat-lbl { display:block; font-size:.68rem; color:#848e9c; margin-bottom:3px; }
-.cm-stat-val { font-size:.85rem; font-weight:700; }
-
-.cm-chart {
-  width:100%; height:180px;
-  background:#1e2329; border-radius:8px;
-  overflow:hidden; margin-bottom:14px;
+/* 价格 */
+.cm-price-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
 }
-.cm-chart iframe { width:100%; height:180px; border:none; display:block; }
-
-.cm-trade-btn {
-  display:flex; align-items:center; justify-content:center;
-  width:100%; padding:12px;
-  background:#f0b90b; color:#1a1a2e !important;
-  border-radius:8px; font-weight:700; font-size:.9rem;
-  text-decoration:none !important; margin-bottom:10px;
-  transition:opacity .15s;
+.cm-price {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #eaecef;
+  letter-spacing: -.02em;
 }
-.cm-trade-btn:hover { opacity:.85; }
+.cm-chg {
+  font-size: .82rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 6px;
+}
+.cm-chg.up   { background: rgba(14,203,129,.15); color: #0ecb81; }
+.cm-chg.down { background: rgba(246,70,93,.15);  color: #f6465d; }
 
-.cm-disclaimer { font-size:.65rem; color:#474d57; text-align:center; }
+/* 数据格 */
+.cm-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.cm-cell {
+  background: #1e2329;
+  border-radius: 8px;
+  padding: 9px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.cm-cell-lbl { font-size: .68rem; color: #848e9c; }
+.cm-cell-val { font-size: .88rem; font-weight: 700; color: #eaecef; }
+
+/* 走势图 */
+.cm-chart-box {
+  background: #1e2329;
+  border-radius: 8px;
+  height: 160px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.cm-chart-box iframe {
+  width: 100%;
+  height: 160px;
+  border: none;
+  display: block;
+}
+
+/* 交易按钮 */
+.cm-trade {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 12px;
+  background: #f0b90b;
+  color: #1a1a2e !important;
+  border-radius: 8px;
+  font-size: .88rem;
+  font-weight: 700;
+  text-decoration: none !important;
+  margin-bottom: 10px;
+  transition: opacity .15s;
+  box-sizing: border-box;
+}
+.cm-trade:hover { opacity: .88; }
+
+.cm-aff {
+  font-size: .62rem;
+  color: #474d57;
+  text-align: center;
+  margin: 0;
+}
 </style>
 
 <script>
@@ -358,36 +565,39 @@ const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
 
   const listEl  = document.getElementById('ranking-list');
   const overlay = document.getElementById('cm-overlay');
-  const closeEl = document.getElementById('cm-close');
+  const closeEl = document.getElementById('cm-x');
+  const BINANCE_REF = 'B2345';
 
-  const SYM_MAP = { matic:'POL', iota:'IOTA', miota:'IOTA', nano:'XNO', xno:'XNO' };
+  const SYM_MAP = {
+    matic:'POL', iota:'IOTA', miota:'IOTA', nano:'XNO', xno:'XNO'
+  };
 
   function bSym(s){ return SYM_MAP[s.toLowerCase()] || s.toUpperCase(); }
 
   function bUrl(s){
     const sym = bSym(s);
-    const stables = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
-    return stables.includes(sym)
-      ? 'https://www.binance.com/markets/overview?ref=B2345'
-      : `https://www.binance.com/trade/${sym}_USDT?ref=B2345`;
+    const st  = ['USDT','USDC','BUSD','DAI','TUSD','FDUSD'];
+    return st.includes(sym)
+      ? 'https://www.binance.com/markets/overview?ref=' + BINANCE_REF
+      : 'https://www.binance.com/trade/' + sym + '_USDT?ref=' + BINANCE_REF;
   }
 
   function fPrice(p){
-    if(p>=1000) return '$'+p.toLocaleString('en-US',{maximumFractionDigits:0});
-    if(p>=1)    return '$'+p.toFixed(2);
-    if(p>=.01)  return '$'+p.toFixed(4);
-    return '$'+p.toFixed(6);
+    if (p >= 1000) return '$' + p.toLocaleString('en-US', {maximumFractionDigits:0});
+    if (p >= 1)    return '$' + p.toFixed(2);
+    if (p >= .01)  return '$' + p.toFixed(4);
+    return '$' + p.toFixed(6);
   }
 
   function fVol(v){
-    if(v>=1e9) return '$'+(v/1e9).toFixed(2)+'B';
-    if(v>=1e6) return '$'+(v/1e6).toFixed(2)+'M';
-    return '$'+(v/1e3).toFixed(1)+'K';
+    if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+    if (v >= 1e6) return '$' + (v/1e6).toFixed(2) + 'M';
+    return '$' + (v/1e3).toFixed(1) + 'K';
   }
 
-  document.querySelectorAll('.ranking-tab').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-      document.querySelectorAll('.ranking-tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.ranking-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.ranking-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       tab = btn.dataset.tab;
       render();
@@ -395,79 +605,91 @@ const rankLbl= lang === 'zh' ? '市值排名'  : 'Market Cap Rank';
   });
 
   function getList(){
-    const v = coins.filter(c=>c.price_change_percentage_24h!=null);
-    if(tab==='gainers') return [...v].sort((a,b)=>b.price_change_percentage_24h-a.price_change_percentage_24h).slice(0,7);
-    if(tab==='losers')  return [...v].sort((a,b)=>a.price_change_percentage_24h-b.price_change_percentage_24h).slice(0,7);
-    return [...coins].sort((a,b)=>b.total_volume-a.total_volume).slice(0,7);
+    const v = coins.filter(c => c.price_change_percentage_24h != null);
+    if (tab === 'gainers') return [...v].sort((a,b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0,7);
+    if (tab === 'losers')  return [...v].sort((a,b) => a.price_change_percentage_24h - b.price_change_percentage_24h).slice(0,7);
+    return [...coins].sort((a,b) => b.total_volume - a.total_volume).slice(0,7);
   }
 
   function render(){
-    if(!listEl||!coins.length) return;
-    const list = getList();
-    listEl.innerHTML = list.map((c,i)=>{
-      const pct  = c.price_change_percentage_24h??0;
-      const up   = pct>=0;
-      const disp = tab==='volume' ? fVol(c.total_volume) : (up?'+':'')+pct.toFixed(2)+'%';
-      const sym3 = c.symbol.slice(0,3).toUpperCase();
+    if (!listEl || !coins.length) return;
+    listEl.innerHTML = getList().map((c, i) => {
+      const pct  = c.price_change_percentage_24h ?? 0;
+      const up   = pct >= 0;
+      const disp = tab === 'volume' ? fVol(c.total_volume) : (up ? '+' : '') + pct.toFixed(2) + '%';
+      const fb   = c.symbol.slice(0,2).toUpperCase();
       return `<div class="ranking-item" data-id="${c.id}">
         <span class="rank-num">${i+1}</span>
-        <span class="coin-icon-wrap">
-          <img src="${c.image}" alt="${c.symbol}" onerror="this.style.display='none';this.parentNode.textContent='${sym3}'"/>
+        <span class="coin-avatar">
+          <img src="${c.image}" alt="${c.symbol}"
+               onerror="this.style.display='none';this.parentNode.textContent='${fb}'" />
         </span>
         <span class="coin-meta">
           <span class="coin-sym">${c.symbol.toUpperCase()}</span>
-          <span class="coin-full">${c.name}</span>
+          <span class="coin-name">${c.name}</span>
         </span>
-        <span class="coin-pct ${up?'up':'down'}">${disp}</span>
+        <span class="coin-pct ${up ? 'up' : 'down'}">${disp}</span>
       </div>`;
     }).join('');
-    listEl.querySelectorAll('.ranking-item').forEach(el=>{
-      el.addEventListener('click',()=>{
-        const c = coins.find(x=>x.id===el.dataset.id);
-        if(c) openModal(c);
+
+    listEl.querySelectorAll('.ranking-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const c = coins.find(x => x.id === el.dataset.id);
+        if (c) openModal(c);
       });
     });
   }
 
   function openModal(c){
-    const pct = c.price_change_percentage_24h??0;
-    const up  = pct>=0;
-    document.getElementById('cm-icon').src       = c.image;
-    document.getElementById('cm-icon').alt       = c.name;
-    document.getElementById('cm-name').textContent    = c.name;
-    document.getElementById('cm-symbol').textContent  = c.symbol.toUpperCase();
-    document.getElementById('cm-rank').textContent    = '#'+c.market_cap_rank;
+    const pct = c.price_change_percentage_24h ?? 0;
+    const up  = pct >= 0;
+
+    document.getElementById('cm-logo').src           = c.image;
+    document.getElementById('cm-logo').alt           = c.name;
+    document.getElementById('cm-fullname').textContent = c.name;
+    document.getElementById('cm-sym').textContent     = c.symbol.toUpperCase();
+    document.getElementById('cm-mcrank').textContent  = '#' + c.market_cap_rank;
     document.getElementById('cm-price').textContent   = fPrice(c.current_price);
     document.getElementById('cm-vol').textContent     = fVol(c.total_volume);
-    document.getElementById('cm-mcrank').textContent  = '#'+c.market_cap_rank;
-    const pctEl = document.getElementById('cm-pct');
-    pctEl.textContent = (up?'+':'')+pct.toFixed(2)+'%';
-    pctEl.className   = 'cm-pct '+(up?'up':'down');
-    document.getElementById('cm-trade-btn').href = bUrl(c.symbol);
-    const tvSym = 'BINANCE:'+bSym(c.symbol)+'USDT';
+    document.getElementById('cm-rank2').textContent   = '#' + c.market_cap_rank;
+
+    const chgEl = document.getElementById('cm-chg');
+    chgEl.textContent = (up ? '+' : '') + pct.toFixed(2) + '%';
+    chgEl.className   = 'cm-chg ' + (up ? 'up' : 'down');
+
+    document.getElementById('cm-trade').href = bUrl(c.symbol);
+    document.getElementById('cm-trade').textContent =
+      (document.documentElement.lang === 'zh' ? '币安交易 ' : 'Trade ')
+      + c.symbol.toUpperCase() + '/USDT';
+
+    const tvSym = 'BINANCE:' + bSym(c.symbol) + 'USDT';
     document.getElementById('cm-chart').innerHTML =
-      `<iframe src="https://s.tradingview.com/widgetembed/?symbol=${tvSym}&interval=D&theme=dark&style=3&locale=en&hide_top_toolbar=1&hide_legend=1&hide_side_toolbar=1&allow_symbol_change=0&save_image=0" frameborder="0" allowtransparency="1"></iframe>`;
+      '<iframe src="https://s.tradingview.com/widgetembed/?symbol=' + tvSym +
+      '&interval=D&theme=dark&style=3&locale=en' +
+      '&hide_top_toolbar=1&hide_legend=1&hide_side_toolbar=1' +
+      '&allow_symbol_change=0&save_image=0" frameborder="0" allowtransparency="1"></iframe>';
+
     overlay.classList.add('open');
-    document.body.style.overflow='hidden';
+    document.body.style.overflow = 'hidden';
   }
 
   function closeModal(){
     overlay.classList.remove('open');
-    document.body.style.overflow='';
-    document.getElementById('cm-chart').innerHTML='';
+    document.body.style.overflow = '';
+    document.getElementById('cm-chart').innerHTML = '';
   }
 
   closeEl.addEventListener('click', closeModal);
-  overlay.addEventListener('click', e=>{ if(e.target===overlay) closeModal(); });
-  document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
   async function load(){
-    try{
+    try {
       const r = await fetch(API);
-      if(!r.ok) return;
+      if (!r.ok) return;
       coins = await r.json();
       render();
-    }catch{}
+    } catch {}
   }
 
   load();
